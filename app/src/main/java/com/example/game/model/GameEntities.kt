@@ -64,7 +64,12 @@ enum class HatType {
     CAT_EARS,
     VIKING_HORNS,
     ANGEL_HALO,
-    PIRATE_HAT
+    PIRATE_HAT,
+    NINJA_HEADBAND,
+    WIZARD_HAT,
+    DEVIL_HORNS,
+    COWBOY_HAT,
+    CHEF_HAT
 }
 
 data class Hat(
@@ -115,3 +120,37 @@ data class GameRoom(
     val maxPlayers: Int = 50,
     val badge: String = "NORMAL"
 )
+
+data class KillNotice(
+    val id: String = UUID.randomUUID().toString(),
+    val victimName: String,
+    val bonusCoins: Int = 50,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+data class DeathParticle(
+    var pos: Vector2D,
+    var velocity: Vector2D,
+    val color: Color,
+    var radius: Float,
+    var life: Float = 0.6f,
+    val maxLife: Float = 0.6f
+)
+
+data class DeathGhostEffect(
+    val segments: List<Vector2D>,
+    val color: Color,
+    val headRadius: Float,
+    var life: Float = 0.55f,
+    val maxLife: Float = 0.55f
+)
+
+data class DailyReward(
+    val day: Int,
+    val title: String,
+    val coins: Int,
+    val skinId: String? = null,
+    val hatId: String? = null,
+    val description: String
+)
+

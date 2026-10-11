@@ -10,6 +10,7 @@ import com.example.game.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.math.min
 
 enum class AppScreen {
     MAIN_MENU,
@@ -156,6 +157,59 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         gameWorld.selectedHat = _selectedHat.value
         gameWorld.selectedFace = _selectedFace.value
         gameWorld.resetGame()
+    }
+
+    // Revive with Coins (50 coins)
+    fun payRevive(cost: Int = 50): Boolean {
+        if (_coins.value >= cost) {
+            _coins.value -= cost
+            prefs.edit().putInt("coins", _coins.value).apply()
+            return true
+        }
+        return false
+    }
+
+    // 7-Day Login Rewards
+    private val _loginDay = MutableStateFlow(prefs.getInt("login_day", 1))
+    val loginDay = _loginDay.asStateFlow()
+
+    private val _claimedDays = MutableStateFlow<Set<Int>>(
+        (prefs.getStringSet("claimed_days_set", emptySet()) ?: emptySet()).mapNotNull { it.toIntOrNull() }.toSet()
+    )
+    val claimedDays = _claimedDays.asStateFlow()
+
+    fun isDayClaimed(day: Int): Boolean = _claimedDays.value.contains(day)
+
+    fun claimDailyReward(reward: DailyReward): Boolean {
+        if (_claimedDays.value.contains(reward.day)) return false
+
+        _coins.value += reward.coins
+
+        reward.skinId?.let { sId ->
+            unlockedSkinIds.add(sId)
+            prefs.edit().putStringSet("unlocked_skins", unlockedSkinIds).apply()
+        }
+
+        reward.hatId?.let { hId ->
+            unlockedHatIds.add(hId)
+            prefs.edit().putStringSet("unlocked_hats", unlockedHatIds).apply()
+        }
+
+        val nextSet = _claimedDays.value.toMutableSet().apply { add(reward.day) }
+        _claimedDays.value = nextSet
+
+        if (_loginDay.value < 7 && reward.day >= _loginDay.value) {
+            _loginDay.value = min(7, _loginDay.value + 1)
+            prefs.edit().putInt("login_day", _loginDay.value).apply()
+        }
+
+        prefs.edit()
+            .putInt("coins", _coins.value)
+            .putStringSet("claimed_days_set", nextSet.map { it.toString() }.toSet())
+            .apply()
+
+        soundManager.playPotion()
+        return true
     }
 
     fun togglePause() {

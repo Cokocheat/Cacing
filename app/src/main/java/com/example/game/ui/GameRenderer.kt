@@ -134,7 +134,13 @@ class GameRenderer {
             drawWorm(scope, player, ::toScreen, zoom, viewportWidth, viewportHeight)
         }
 
-        // 6. Draw Off-Screen Threat Radar Chevron Arrows
+        // 6. Draw Smooth Death Dissolve Ghost Segments
+        drawDeathGhosts(scope, world, ::toScreen, zoom, viewportWidth, viewportHeight)
+
+        // 7. Draw Smooth Death Particle Bursts
+        drawDeathParticles(scope, world, ::toScreen, zoom, viewportWidth, viewportHeight)
+
+        // 8. Draw Off-Screen Threat Radar Chevron Arrows
         drawOffscreenThreats(scope, world, ::toScreen, viewportWidth, viewportHeight)
     }
 
@@ -795,7 +801,135 @@ class GameRenderer {
                 scope.drawPath(hatPath, color = Color(0xFF1B1B1B))
                 scope.drawCircle(color = Color.White, radius = 4f * zoom, center = hatCenter)
             }
+            HatType.NINJA_HEADBAND -> {
+                val bandW = headRadius * 1.1f
+                val bandH = headRadius * 0.32f
+                scope.drawRoundRect(
+                    color = Color(0xFFFF1744),
+                    topLeft = hatCenter - Offset(bandW / 2f, bandH / 2f),
+                    size = Size(bandW, bandH),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * zoom, 3f * zoom)
+                )
+                // Center metallic badge
+                scope.drawCircle(color = Color(0xFFEEEEEE), radius = bandH * 0.4f, center = hatCenter)
+                // Trailing ribbons
+                scope.drawLine(
+                    color = Color(0xFFFF1744),
+                    start = hatCenter + Offset(bandW / 2f - 2f, 0f),
+                    end = hatCenter + Offset(bandW / 2f + headRadius * 0.5f, headRadius * 0.4f),
+                    strokeWidth = 3f * zoom
+                )
+            }
+            HatType.WIZARD_HAT -> {
+                val w = headRadius * 1.0f
+                val h = headRadius * 1.2f
+                val hatPath = Path().apply {
+                    moveTo(hatCenter.x - w / 2f, hatCenter.y + h * 0.3f)
+                    lineTo(hatCenter.x + headRadius * 0.15f, hatCenter.y - h * 0.7f)
+                    lineTo(hatCenter.x + w / 2f, hatCenter.y + h * 0.3f)
+                    close()
+                }
+                scope.drawPath(hatPath, color = Color(0xFF311B92))
+                scope.drawOval(
+                    color = Color(0xFF1A237E),
+                    topLeft = hatCenter - Offset(w * 0.65f, -h * 0.2f),
+                    size = Size(w * 1.3f, h * 0.25f)
+                )
+                scope.drawCircle(color = Color(0xFFFFD700), radius = 4f * zoom, center = hatCenter - Offset(0f, h * 0.1f))
+            }
+            HatType.DEVIL_HORNS -> {
+                val hornW = headRadius * 0.35f
+                val hornH = headRadius * 0.6f
+                scope.drawArc(
+                    color = Color(0xFFFF1744),
+                    startAngle = 170f,
+                    sweepAngle = 100f,
+                    useCenter = false,
+                    topLeft = hatCenter - Offset(headRadius * 0.65f, hornH * 0.8f),
+                    size = Size(hornW, hornH),
+                    style = Stroke(width = 6f * zoom)
+                )
+                scope.drawArc(
+                    color = Color(0xFFFF1744),
+                    startAngle = 270f,
+                    sweepAngle = 100f,
+                    useCenter = false,
+                    topLeft = hatCenter + Offset(headRadius * 0.3f, -hornH * 0.8f),
+                    size = Size(hornW, hornH),
+                    style = Stroke(width = 6f * zoom)
+                )
+            }
+            HatType.COWBOY_HAT -> {
+                val brimW = headRadius * 1.35f
+                val crownW = headRadius * 0.75f
+                scope.drawOval(
+                    color = Color(0xFF5D4037),
+                    topLeft = hatCenter - Offset(brimW / 2f, headRadius * 0.15f),
+                    size = Size(brimW, headRadius * 0.35f)
+                )
+                scope.drawRoundRect(
+                    color = Color(0xFF4E342E),
+                    topLeft = hatCenter - Offset(crownW / 2f, headRadius * 0.6f),
+                    size = Size(crownW, headRadius * 0.5f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * zoom, 4f * zoom)
+                )
+            }
+            HatType.CHEF_HAT -> {
+                val toqueW = headRadius * 0.9f
+                val toqueH = headRadius * 0.75f
+                scope.drawRoundRect(
+                    color = Color(0xFFF5F5F5),
+                    topLeft = hatCenter - Offset(toqueW / 2f, toqueH),
+                    size = Size(toqueW, toqueH),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f * zoom, 8f * zoom)
+                )
+                scope.drawCircle(color = Color.White, radius = toqueW * 0.35f, center = hatCenter - Offset(-toqueW * 0.25f, toqueH * 0.9f))
+                scope.drawCircle(color = Color.White, radius = toqueW * 0.35f, center = hatCenter - Offset(toqueW * 0.25f, toqueH * 0.9f))
+                scope.drawCircle(color = Color.White, radius = toqueW * 0.38f, center = hatCenter - Offset(0f, toqueH * 1.05f))
+            }
             else -> {}
+        }
+    }
+
+    private fun drawDeathGhosts(
+        scope: DrawScope,
+        world: GameWorld,
+        toScreen: (Vector2D) -> Offset,
+        zoom: Float,
+        viewportW: Float,
+        viewportH: Float
+    ) {
+        for (ghost in world.deathGhosts) {
+            val alpha = (ghost.life / ghost.maxLife).coerceIn(0f, 1f)
+            val segRadius = ghost.headRadius * zoom * (0.85f + (1f - alpha) * 0.35f)
+            val fadeColor = ghost.color.copy(alpha = alpha * 0.65f)
+            val step = max(1, ghost.segments.size / 22)
+            for (i in 0 until ghost.segments.size step step) {
+                val sp = toScreen(ghost.segments[i])
+                if (sp.x < -segRadius || sp.x > viewportW + segRadius ||
+                    sp.y < -segRadius || sp.y > viewportH + segRadius
+                ) continue
+                scope.drawCircle(color = fadeColor, radius = segRadius, center = sp)
+                scope.drawCircle(color = Color.White.copy(alpha = alpha * 0.35f), radius = segRadius * 0.4f, center = sp)
+            }
+        }
+    }
+
+    private fun drawDeathParticles(
+        scope: DrawScope,
+        world: GameWorld,
+        toScreen: (Vector2D) -> Offset,
+        zoom: Float,
+        viewportW: Float,
+        viewportH: Float
+    ) {
+        for (p in world.deathParticles) {
+            val sp = toScreen(p.pos)
+            val r = (p.radius * zoom).coerceAtLeast(2.5f)
+            if (sp.x < -r || sp.x > viewportW + r || sp.y < -r || sp.y > viewportH + r) continue
+            val alpha = (p.life / p.maxLife).coerceIn(0f, 1f)
+            scope.drawCircle(color = p.color.copy(alpha = alpha * 0.85f), radius = r, center = sp)
+            scope.drawCircle(color = Color.White.copy(alpha = alpha * 0.6f), radius = r * 0.4f, center = sp)
         }
     }
 }

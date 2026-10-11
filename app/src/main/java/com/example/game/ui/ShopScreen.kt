@@ -563,6 +563,11 @@ private fun HatItemCard(
                     HatType.VIKING_HORNS -> Icons.Default.Shield
                     HatType.ANGEL_HALO -> Icons.Default.Brightness7
                     HatType.PIRATE_HAT -> Icons.Default.Explore
+                    HatType.NINJA_HEADBAND -> Icons.Default.SportsKabaddi
+                    HatType.WIZARD_HAT -> Icons.Default.AutoAwesome
+                    HatType.DEVIL_HORNS -> Icons.Default.Whatshot
+                    HatType.COWBOY_HAT -> Icons.Default.Landscape
+                    HatType.CHEF_HAT -> Icons.Default.Restaurant
                     HatType.NONE -> Icons.Default.Block
                 }
                 val iconTint = when (hat.type) {
@@ -571,6 +576,11 @@ private fun HatItemCard(
                     HatType.PARTY_HAT -> Color(0xFFFF4081)
                     HatType.CAT_EARS -> Color(0xFFFF80AB)
                     HatType.ANGEL_HALO -> Color(0xFFFFEB3B)
+                    HatType.NINJA_HEADBAND -> Color(0xFFFF1744)
+                    HatType.WIZARD_HAT -> Color(0xFF7C4DFF)
+                    HatType.DEVIL_HORNS -> Color(0xFFFF3D00)
+                    HatType.COWBOY_HAT -> Color(0xFFD7CCC8)
+                    HatType.CHEF_HAT -> Color(0xFFFFFFFF)
                     HatType.NONE -> Color.Gray
                     else -> Color.White
                 }
@@ -736,9 +746,52 @@ private fun ShopPreviewCanvas(skin: Skin, hat: Hat, face: Face) {
             )
         }
 
-        // Crown or Hat on preview
-        if (hat.type == HatType.CROWN) {
-            drawCircle(color = Color(0xFFFFD700), radius = 10f, center = center - Offset(0f, headRadius * 0.95f))
+        // Hat on preview
+        val hatCenter = center - Offset(0f, headRadius * 0.95f)
+        when (hat.type) {
+            HatType.CROWN -> {
+                drawCircle(color = Color(0xFFFFD700), radius = 10f, center = hatCenter)
+            }
+            HatType.SUNGLASSES -> {
+                drawRoundRect(
+                    color = Color(0xFF111111),
+                    topLeft = center - Offset(headRadius * 0.45f, headRadius * 0.25f),
+                    size = androidx.compose.ui.geometry.Size(headRadius * 0.9f, headRadius * 0.35f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+                )
+            }
+            HatType.NINJA_HEADBAND -> {
+                drawRoundRect(
+                    color = Color(0xFFFF1744),
+                    topLeft = center - Offset(headRadius * 0.55f, headRadius * 0.55f),
+                    size = androidx.compose.ui.geometry.Size(headRadius * 1.1f, headRadius * 0.28f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f, 2f)
+                )
+            }
+            HatType.WIZARD_HAT -> {
+                drawCircle(color = Color(0xFF311B92), radius = 11f, center = hatCenter)
+                drawCircle(color = Color(0xFFFFD700), radius = 3.5f, center = hatCenter)
+            }
+            HatType.DEVIL_HORNS -> {
+                drawCircle(color = Color(0xFFFF1744), radius = 5f, center = hatCenter - Offset(headRadius * 0.4f, 0f))
+                drawCircle(color = Color(0xFFFF1744), radius = 5f, center = hatCenter + Offset(headRadius * 0.4f, 0f))
+            }
+            HatType.PARTY_HAT -> {
+                drawCircle(color = Color(0xFFFF4081), radius = 9f, center = hatCenter)
+            }
+            HatType.CAT_EARS -> {
+                drawCircle(color = Color(0xFF212121), radius = 6f, center = hatCenter - Offset(headRadius * 0.35f, 0f))
+                drawCircle(color = Color(0xFF212121), radius = 6f, center = hatCenter + Offset(headRadius * 0.35f, 0f))
+            }
+            HatType.ANGEL_HALO -> {
+                drawOval(
+                    color = Color(0xFFFFD700),
+                    topLeft = hatCenter - Offset(headRadius * 0.5f, headRadius * 0.15f),
+                    size = androidx.compose.ui.geometry.Size(headRadius * 1.0f, headRadius * 0.35f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f)
+                )
+            }
+            else -> {}
         }
     }
 }

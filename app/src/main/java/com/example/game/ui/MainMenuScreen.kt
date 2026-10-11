@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,8 +40,11 @@ fun MainMenuScreen(viewModel: GameViewModel) {
     val selectedFace by viewModel.selectedFace.collectAsState()
     val selectedRoom by viewModel.selectedRoom.collectAsState()
 
+    val claimedDays by viewModel.claimedDays.collectAsState()
+    val loginDay by viewModel.loginDay.collectAsState()
     var showNameDialog by remember { mutableStateOf(false) }
     var showRoomDialog by remember { mutableStateOf(false) }
+    var showDailyRewardDialog by remember { mutableStateOf(!viewModel.isDayClaimed(loginDay)) }
 
     // Pulsing button animation
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -177,8 +181,34 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                 )
             }
 
-            // Right: Coins balance & Settings Icon
+            // Right: 7-Day Rewards, Coins balance & Settings Icon
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // 7-Day Login Reward Button
+                Button(
+                    onClick = { showDailyRewardDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6D00)),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier
+                        .height(36.dp)
+                        .testTag("daily_reward_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CardGiftcard,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "HADIAH 7 HARI",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
@@ -374,6 +404,14 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                 onDismiss = { showRoomDialog = false }
             )
         }
+
+        // Dialog: 7-Day Login Rewards
+        if (showDailyRewardDialog) {
+            DailyRewardDialog(
+                viewModel = viewModel,
+                onDismiss = { showDailyRewardDialog = false }
+            )
+        }
     }
 }
 
@@ -457,9 +495,44 @@ private fun WormSlitherPreview(
             )
         }
 
-        // Crown
-        if (hat.type == HatType.CROWN) {
-            drawCircle(color = Color(0xFFFFD700), radius = 9f, center = headPos - Offset(0f, headRadius * 0.95f))
+        // Hat
+        val hatCenter = headPos - Offset(0f, headRadius * 0.95f)
+        when (hat.type) {
+            HatType.CROWN -> {
+                drawCircle(color = Color(0xFFFFD700), radius = 9f, center = hatCenter)
+            }
+            HatType.NINJA_HEADBAND -> {
+                drawRoundRect(
+                    color = Color(0xFFFF1744),
+                    topLeft = headPos - Offset(headRadius * 0.5f, headRadius * 0.5f),
+                    size = androidx.compose.ui.geometry.Size(headRadius * 1.0f, headRadius * 0.25f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f, 2f)
+                )
+            }
+            HatType.WIZARD_HAT -> {
+                drawCircle(color = Color(0xFF311B92), radius = 10f, center = hatCenter)
+                drawCircle(color = Color(0xFFFFD700), radius = 3.5f, center = hatCenter)
+            }
+            HatType.DEVIL_HORNS -> {
+                drawCircle(color = Color(0xFFFF1744), radius = 4.5f, center = hatCenter - Offset(headRadius * 0.35f, 0f))
+                drawCircle(color = Color(0xFFFF1744), radius = 4.5f, center = hatCenter + Offset(headRadius * 0.35f, 0f))
+            }
+            HatType.PARTY_HAT -> {
+                drawCircle(color = Color(0xFFFF4081), radius = 8f, center = hatCenter)
+            }
+            HatType.CAT_EARS -> {
+                drawCircle(color = Color(0xFF212121), radius = 5f, center = hatCenter - Offset(headRadius * 0.35f, 0f))
+                drawCircle(color = Color(0xFF212121), radius = 5f, center = hatCenter + Offset(headRadius * 0.35f, 0f))
+            }
+            HatType.ANGEL_HALO -> {
+                drawOval(
+                    color = Color(0xFFFFD700),
+                    topLeft = hatCenter - Offset(headRadius * 0.45f, headRadius * 0.15f),
+                    size = androidx.compose.ui.geometry.Size(headRadius * 0.9f, headRadius * 0.3f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f)
+                )
+            }
+            else -> {}
         }
     }
 }
@@ -631,3 +704,214 @@ private fun ChooseRoomDialog(
         }
     }
 }
+
+@Composable
+private fun DailyRewardDialog(
+    viewModel: GameViewModel,
+    onDismiss: () -> Unit
+) {
+    val loginDay by viewModel.loginDay.collectAsState()
+    val claimedDays by viewModel.claimedDays.collectAsState()
+    val currentReward = Catalog.DAILY_REWARDS.find { it.day == loginDay }
+    val isTodayClaimed = viewModel.isDayClaimed(loginDay)
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(26.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF111728)),
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .widthIn(max = 660.dp)
+                .border(2.dp, Color(0xFFFF9100), RoundedCornerShape(26.dp))
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CardGiftcard,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "HADIAH LOGIN 7 HARI",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFFFD700)
+                    )
+                }
+                Text(
+                    text = "Klaim koin dan skin eksklusif setiap hari untuk memperkuat cacingmu!",
+                    fontSize = 11.sp,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 7 Days Cards Row
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(Catalog.DAILY_REWARDS) { reward ->
+                        val isClaimed = viewModel.isDayClaimed(reward.day)
+                        val isCurrentDay = reward.day == loginDay
+                        val isLocked = reward.day > loginDay
+
+                        val cardBg = when {
+                            isClaimed -> Color(0xFF17281F)
+                            isCurrentDay && !isClaimed -> Color(0xFF33200B)
+                            else -> Color(0xFF171E2D)
+                        }
+                        val cardBorder = when {
+                            isClaimed -> Color(0xFF00E676)
+                            isCurrentDay && !isClaimed -> Color(0xFFFF9100)
+                            else -> Color(0x33FFFFFF)
+                        }
+
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = cardBg),
+                            modifier = Modifier
+                                .width(94.dp)
+                                .height(130.dp)
+                                .border(1.5.dp, cardBorder, RoundedCornerShape(16.dp))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = reward.title,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isCurrentDay) Color(0xFFFFD700) else Color.White
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isClaimed) Color(0x3300E676) else Color(0x33FFD700)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    val icon = when {
+                                        reward.skinId != null -> Icons.Default.Palette
+                                        reward.hatId != null -> Icons.Default.Diamond
+                                        else -> Icons.Default.MonetizationOn
+                                    }
+                                    val tint = when {
+                                        isClaimed -> Color(0xFF00E676)
+                                        reward.skinId != null -> Color(0xFF00E5FF)
+                                        reward.hatId != null -> Color(0xFFFF4081)
+                                        else -> Color(0xFFFFD700)
+                                    }
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = tint,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                Text(
+                                    text = "+${reward.coins}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFFD700)
+                                )
+
+                                when {
+                                    isClaimed -> {
+                                        Text(
+                                            text = "DIKLAIM ✓",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF00E676)
+                                        )
+                                    }
+                                    isCurrentDay -> {
+                                        Text(
+                                            text = "HARI INI!",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFFFF9100)
+                                        )
+                                    }
+                                    else -> {
+                                        Text(
+                                            text = "Terkunci",
+                                            fontSize = 9.sp,
+                                            color = Color.White.copy(alpha = 0.4f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Claim Action Button
+                if (!isTodayClaimed && currentReward != null) {
+                    Button(
+                        onClick = {
+                            viewModel.claimDailyReward(currentReward)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("claim_daily_reward_button")
+                    ) {
+                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color.Black)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "KLAIM HADIAH HARI KE-$loginDay SEKARANG!",
+                            color = Color.Black,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 14.sp
+                        )
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                    ) {
+                        Text(
+                            text = "Hadiah Hari Ini Sudah Diklaim - Kembali Besok!",
+                            color = Color(0xFF00E676),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = onDismiss,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Tutup", color = Color.White)
+                }
+            }
+        }
+    }
+}
+

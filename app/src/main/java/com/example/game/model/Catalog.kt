@@ -118,6 +118,42 @@ object Catalog {
             price = 600,
             isUnlocked = false,
             glowColor = Color(0x9981D4FA)
+        ),
+        Skin(
+            id = "skin_neon_phantom",
+            name = "Neon Phantom",
+            colors = listOf(Color(0xFF7C4DFF), Color(0xFF00E5FF), Color(0xFF18FFFF)),
+            pattern = PatternType.NEON_GLOW,
+            price = 380,
+            isUnlocked = false,
+            glowColor = Color(0x9900E5FF)
+        ),
+        Skin(
+            id = "skin_lava_magma",
+            name = "Lava Pijar",
+            colors = listOf(Color(0xFFFF3D00), Color(0xFFFFAB00), Color(0xFF3E2723)),
+            pattern = PatternType.GRADIENT,
+            price = 420,
+            isUnlocked = false,
+            glowColor = Color(0x99FF3D00)
+        ),
+        Skin(
+            id = "skin_pastel_mint",
+            name = "Pastel Imut",
+            colors = listOf(Color(0xFF80CBC4), Color(0xFFF48FB1), Color(0xFFFFF59D)),
+            pattern = PatternType.CANDY_SWIRL,
+            price = 260,
+            isUnlocked = false,
+            glowColor = Color(0x99F48FB1)
+        ),
+        Skin(
+            id = "skin_gold_emperor",
+            name = "Kaisar Emas",
+            colors = listOf(Color(0xFFFFD700), Color(0xFFFF1744), Color(0xFFFFEA00)),
+            pattern = PatternType.DRAGON_SCALES,
+            price = 700,
+            isUnlocked = false,
+            glowColor = Color(0xAAFFD700)
         )
     )
 
@@ -130,7 +166,12 @@ object Catalog {
         Hat("hat_cat", "Telinga Kucing", HatType.CAT_EARS, 220, "KAWAII", isUnlocked = false),
         Hat("hat_viking", "Tanduk Viking", HatType.VIKING_HORNS, 250, "WARRIOR", isUnlocked = false),
         Hat("hat_halo", "Cincin Malaikat", HatType.ANGEL_HALO, 280, "MYTHIC", isUnlocked = false),
-        Hat("hat_pirate", "Topi Bajak Laut", HatType.PIRATE_HAT, 300, "PIRATE", isUnlocked = false)
+        Hat("hat_pirate", "Topi Bajak Laut", HatType.PIRATE_HAT, 300, "PIRATE", isUnlocked = false),
+        Hat("hat_ninja", "Ikat Kepala Ninja", HatType.NINJA_HEADBAND, 260, "SHINOBI", isUnlocked = false),
+        Hat("hat_wizard", "Topi Penyihir", HatType.WIZARD_HAT, 320, "MAGIC", isUnlocked = false),
+        Hat("hat_devil", "Tanduk Iblis", HatType.DEVIL_HORNS, 270, "DARK", isUnlocked = false),
+        Hat("hat_cowboy", "Topi Koboi", HatType.COWBOY_HAT, 210, "WESTERN", isUnlocked = false),
+        Hat("hat_chef", "Topi Koki", HatType.CHEF_HAT, 190, "MASTER", isUnlocked = false)
     )
 
     val FACES = listOf(
@@ -145,5 +186,15 @@ object Catalog {
         GameRoom("room_global", "Global Champions Hall", "Singapore SG", 24, 45, 50, "HOT"),
         GameRoom("room_cyber", "Cyber Neon City", "Tokyo JP", 42, 38, 50, "EVENT"),
         GameRoom("room_candy", "Candyland Battle Royale", "Sydney AU", 62, 34, 50, "BARU")
+    )
+
+    val DAILY_REWARDS = listOf(
+        DailyReward(1, "Hari 1", 200, null, null, "+200 Koin Sambutan"),
+        DailyReward(2, "Hari 2", 300, null, null, "+300 Koin Bonus"),
+        DailyReward(3, "Hari 3", 400, "skin_neon_phantom", null, "+400 Koin & Skin Neon Phantom"),
+        DailyReward(4, "Hari 4", 500, null, null, "+500 Koin Pejuang"),
+        DailyReward(5, "Hari 5", 600, null, "hat_ninja", "+600 Koin & Ikat Kepala Ninja"),
+        DailyReward(6, "Hari 6", 800, null, null, "+800 Koin Petarung"),
+        DailyReward(7, "Hari 7", 1500, "skin_gold_emperor", "hat_crown", "+1500 Koin & Skin Kaisar Emas!")
     )
 }

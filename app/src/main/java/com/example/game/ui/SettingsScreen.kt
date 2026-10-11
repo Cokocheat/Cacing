@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.sp
 import com.example.game.viewmodel.AppScreen
 import com.example.game.viewmodel.GameViewModel
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
 fun SettingsScreen(viewModel: GameViewModel) {
     val soundEnabled by viewModel.soundEnabled.collectAsState()
@@ -28,6 +31,7 @@ fun SettingsScreen(viewModel: GameViewModel) {
     val currentName by viewModel.playerName.collectAsState()
 
     var nameInput by remember { mutableStateOf(currentName) }
+    val scrollState = rememberScrollState()
 
     BackHandler {
         viewModel.setScreen(AppScreen.MAIN_MENU)
@@ -44,6 +48,8 @@ fun SettingsScreen(viewModel: GameViewModel) {
                 .fillMaxWidth()
                 .widthIn(max = 680.dp)
                 .align(Alignment.TopCenter)
+                .verticalScroll(scrollState)
+                .padding(bottom = 40.dp)
         ) {
             // Header
             Row(

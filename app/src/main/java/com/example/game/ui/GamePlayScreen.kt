@@ -189,9 +189,25 @@ fun GamePlayScreen(viewModel: GameViewModel) {
         // HUD - Top Right: Live Room Leaderboard
         TopRightLeaderboard(world = world, modifier = Modifier.align(Alignment.TopEnd))
 
+        // HUD - Top Center: Kill Notification Banner
+        val killNotice = world.activeKillNotice
+        AnimatedVisibility(
+            visible = killNotice != null,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 56.dp)
+        ) {
+            if (killNotice != null) {
+                KillNotificationBanner(notice = killNotice)
+            }
+        }
+
         // HUD - Bottom Right: Dedicated Modern Tactical Radar Minimap
         TacticalRadarOverlay(
             world = world,
+            frameTick = frameTick,
             isExpanded = isRadarExpanded,
             onToggleExpand = { isRadarExpanded = !isRadarExpanded },
             modifier = Modifier
@@ -219,8 +235,25 @@ fun GamePlayScreen(viewModel: GameViewModel) {
             )
         }
 
+        // Revive with Coins Dialog (5-second countdown to continue)
+        if (world.isRevivePromptActive && !world.isGameOver) {
+            ReviveModal(
+                world = world,
+                viewModel = viewModel,
+                onRevive = {
+                    val canPay = viewModel.payRevive(50)
+                    if (canPay) {
+                        world.revivePlayer()
+                    }
+                },
+                onDecline = {
+                    world.declineRevive()
+                }
+            )
+        }
+
         // Game Over Dialog
-        if (world.isGameOver) {
+        if (world.isGameOver && !world.isRevivePromptActive) {
             GameOverModal(
                 world = world,
                 viewModel = viewModel,
@@ -235,10 +268,11 @@ fun GamePlayScreen(viewModel: GameViewModel) {
     }
 }
 
-// MODERN TACTICAL RADAR MINIMAP (No Emojis, Sleek Worms Zone Design)
+// MODERN TACTICAL RADAR MINIMAP (Real-Time 60 FPS, Sleek Worms Zone Design)
 @Composable
 private fun TacticalRadarOverlay(
     world: GameWorld,
+    frameTick: Long,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     modifier: Modifier = Modifier
@@ -1015,3 +1049,170 @@ private fun GameOverModal(
         }
     }
 }
+
+// IN-GAME KILL NOTIFICATION BANNER
+@Composable
+private fun KillNotificationBanner(notice: com.example.game.model.KillNotice) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xEE160B0F)),
+        modifier = Modifier
+            .border(2.dp, Color(0xFFFF1744), RoundedCornerShape(20.dp))
+            .shadow(16.dp, RoundedCornerShape(20.dp))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF1744)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "MUSUH DIELIMINASI!",
+                        color = Color(0xFFFFD700),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0x3300E676), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = "+${notice.bonusCoins} KOIN",
+                            color = Color(0xFF00E676),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+                Text(
+                    text = "Kamu mengalahkan ${notice.victimName}",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+
+// REVIVE WITH COINS MODAL DIALOG
+@Composable
+private fun ReviveModal(
+    world: GameWorld,
+    viewModel: GameViewModel,
+    onRevive: () -> Unit,
+    onDecline: () -> Unit
+) {
+    val coins by viewModel.coins.collectAsState()
+    val remainingSec = max(1, ceil(world.reviveCountdownSec).toInt())
+    val canAfford = coins >= 50
+
+    Dialog(onDismissRequest = onDecline) {
+        Card(
+            shape = RoundedCornerShape(26.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF13192B)),
+            modifier = Modifier
+                .width(360.dp)
+                .shadow(24.dp, RoundedCornerShape(26.dp))
+                .border(2.5.dp, Color(0xFF00E5FF), RoundedCornerShape(26.dp))
+        ) {
+            Column(
+                modifier = Modifier.padding(22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "LANJUTKAN PERMAINAN?",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF00E5FF)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Bangkit kembali dengan perisai pelindung 5 detik!",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Countdown Timer Circle
+                Box(
+                    modifier = Modifier
+                        .size(76.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1B243B))
+                        .border(3.5.dp, Color(0xFFFF9100), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "$remainingSec",
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFFF9100)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Revive Button with Coins
+                Button(
+                    onClick = onRevive,
+                    enabled = canAfford,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("revive_with_coins_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MonetizationOn,
+                        contentDescription = null,
+                        tint = Color.Black,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (canAfford) "Lanjutkan (50 Koin)" else "Koin Kurang (Butuh 50)",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 15.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Decline / Give up Button
+                OutlinedButton(
+                    onClick = onDecline,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .testTag("decline_revive_button")
+                ) {
+                    Text("Menyerah (Selesai)", color = Color.White.copy(alpha = 0.8f))
+                }
+            }
+        }
+    }
+}
+

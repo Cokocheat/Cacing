@@ -37,6 +37,18 @@ class GameWorld(
     var sessionMaxScore by mutableStateOf(100)
     var sessionDurationSec: Float = 0f
 
+    // In-game kill notification banner
+    var activeKillNotice by mutableStateOf<KillNotice?>(null)
+    private var killNoticeTimer: Float = 0f
+
+    // Smooth death animations (ghost trail + exploding particles)
+    val deathParticles = ArrayList<DeathParticle>()
+    val deathGhosts = ArrayList<DeathGhostEffect>()
+
+    // Revive with Coins state
+    var isRevivePromptActive by mutableStateOf(false)
+    var reviveCountdownSec by mutableStateOf(5.0f)
+
     // Radar scanning angle
     var radarScanAngle: Float = 0f
 
@@ -85,6 +97,12 @@ class GameWorld(
     fun resetGame() {
         isGameOver = false
         isPaused = false
+        isRevivePromptActive = false
+        reviveCountdownSec = 5.0f
+        activeKillNotice = null
+        killNoticeTimer = 0f
+        deathParticles.clear()
+        deathGhosts.clear()
         sessionDurationSec = 0f
         sessionKills = 0
         coinsCollected = 0
@@ -200,10 +218,47 @@ class GameWorld(
     }
 
     fun update(deltaTime: Float) {
-        if (isGameOver || isPaused) return
+        if (isPaused) return
+
+        // Handle revive countdown
+        if (isRevivePromptActive) {
+            reviveCountdownSec -= deltaTime
+            if (reviveCountdownSec <= 0f) {
+                declineRevive()
+            }
+            return
+        }
+
+        if (isGameOver) return
 
         sessionDurationSec += deltaTime
         radarScanAngle = (radarScanAngle + deltaTime * 2.8f) % (2 * PI.toFloat())
+
+        // Update active kill notification timer
+        if (activeKillNotice != null) {
+            killNoticeTimer -= deltaTime
+            if (killNoticeTimer <= 0f) {
+                activeKillNotice = null
+            }
+        }
+
+        // Update smooth death particles
+        val pIter = deathParticles.iterator()
+        while (pIter.hasNext()) {
+            val p = pIter.next()
+            p.pos = p.pos + p.velocity * deltaTime
+            p.velocity = p.velocity * 0.94f
+            p.life -= deltaTime
+            if (p.life <= 0f) pIter.remove()
+        }
+
+        // Update death ghost fading effects
+        val gIter = deathGhosts.iterator()
+        while (gIter.hasNext()) {
+            val g = gIter.next()
+            g.life -= deltaTime
+            if (g.life <= 0f) gIter.remove()
+        }
 
         // 1. Update Player
         if (playerWorm.isAlive) {
@@ -439,12 +494,38 @@ class GameWorld(
     private fun killWorm(deadWorm: Worm, killer: Worm?) {
         deadWorm.isAlive = false
 
+        // Spawn smooth fading ghost segments
+        deathGhosts.add(
+            DeathGhostEffect(
+                segments = ArrayList(deadWorm.segments),
+                color = deadWorm.skin.colors.first(),
+                headRadius = deadWorm.currentRadius
+            )
+        )
+
+        // Spawn smooth bursting particles
+        for (i in 0 until 28) {
+            val angle = Random.nextFloat() * 2 * PI.toFloat()
+            val speed = 80f + Random.nextFloat() * 240f
+            deathParticles.add(
+                DeathParticle(
+                    pos = deadWorm.headPosition,
+                    velocity = Vector2D(cos(angle) * speed, sin(angle) * speed),
+                    color = deadWorm.skin.colors.random(),
+                    radius = Random.nextFloat() * 7f + 4f
+                )
+            )
+        }
+
         if (killer != null) {
             killer.kills++
             killer.grow(deadWorm.score / 2)
             if (killer.isPlayer) {
                 sessionKills++
                 coinsCollected += 50
+                activeKillNotice = KillNotice(victimName = deadWorm.name, bonusCoins = 50)
+                killNoticeTimer = 2.8f
+                soundManager.playKill()
             }
         }
 
@@ -466,8 +547,33 @@ class GameWorld(
         }
 
         if (deadWorm.isPlayer) {
-            isGameOver = true
+            isRevivePromptActive = true
+            reviveCountdownSec = 5.0f
         }
+    }
+
+    fun revivePlayer() {
+        isRevivePromptActive = false
+        isGameOver = false
+        playerWorm.isAlive = true
+        playerWorm.spawnShieldTimer = 5.0f // 5s invincible shield
+
+        // Clear immediate danger: repel any bots nearby
+        val pHead = playerWorm.headPosition
+        for (bot in botWorms) {
+            if (bot.headPosition.distanceTo(pHead) < 500f) {
+                val away = (bot.headPosition - pHead).normalized()
+                bot.headPosition = pHead + away * 650f
+                bot.currentAngle = atan2(away.y, away.x)
+                bot.targetAngle = bot.currentAngle
+            }
+        }
+        soundManager.playPotion()
+    }
+
+    fun declineRevive() {
+        isRevivePromptActive = false
+        isGameOver = true
     }
 
     fun getLiveLeaderboard(): List<LeaderboardEntry> {
