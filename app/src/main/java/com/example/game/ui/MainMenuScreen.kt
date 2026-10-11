@@ -70,7 +70,7 @@ fun MainMenuScreen(viewModel: GameViewModel) {
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0D1322), Color(0xFF151C33), Color(0xFF090D17))
+                    colors = listOf(Color(0xFF0C101A), Color(0xFF13192B), Color(0xFF090D17))
                 )
             )
             .padding(horizontal = 24.dp, vertical = 14.dp)
@@ -87,16 +87,31 @@ fun MainMenuScreen(viewModel: GameViewModel) {
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xCC1A233A))
-                    .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(20.dp))
+                    .background(Color(0xDD111828))
+                    .border(1.dp, Color(0x334A6999), RoundedCornerShape(20.dp))
                     .clickable { showNameDialog = true }
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = selectedHat.iconEmoji.ifEmpty { "🐛" },
-                    fontSize = 20.sp
-                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(selectedSkin.colors.first(), Color(0xFF10141E))
+                            )
+                        )
+                        .border(1.5.dp, Color(0xFF00E5FF), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SportsEsports,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -111,14 +126,14 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Ubah Nama",
                             tint = Color(0xFF00E5FF),
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(13.dp)
                         )
                     }
                     Text(
-                        text = "Rekor: $highScore",
+                        text = "REKOR: $highScore",
                         color = Color(0xFFFFD700),
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -127,7 +142,7 @@ fun MainMenuScreen(viewModel: GameViewModel) {
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xCC1A233A))
+                    .background(Color(0xDD111828))
                     .border(1.dp, Color(0x3300E676), RoundedCornerShape(20.dp))
                     .clickable { showRoomDialog = true }
                     .padding(horizontal = 14.dp, vertical = 8.dp),
@@ -150,7 +165,8 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                     Text(
                         text = "${selectedRoom.region} • ${selectedRoom.pingMs}ms",
                         color = Color(0xFF00E676),
-                        fontSize = 11.sp
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
                 Spacer(modifier = Modifier.width(6.dp))
@@ -166,17 +182,22 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xCC1A233A))
+                        .background(Color(0xDD111828))
                         .border(1.dp, Color(0xFFFFD700), RoundedCornerShape(20.dp))
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("🪙", fontSize = 16.sp)
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Default.MonetizationOn,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
                     Text(
                         text = "$coins",
                         color = Color(0xFFFFD700),
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Black,
                         fontSize = 15.sp
                     )
                 }
@@ -188,8 +209,8 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color(0xCC1A233A))
-                        .border(1.dp, Color(0x33FFFFFF), CircleShape)
+                        .background(Color(0xDD111828))
+                        .border(1.dp, Color(0x334A6999), CircleShape)
                         .testTag("settings_button")
                 ) {
                     Icon(
@@ -211,29 +232,30 @@ fun MainMenuScreen(viewModel: GameViewModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            // Left: Title & Quick Features
+            // Left: Title & Features
             Column(
-                modifier = Modifier.width(300.dp),
+                modifier = Modifier.width(320.dp),
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    text = "👑 NANA TAYANTUH",
-                    fontSize = 32.sp,
+                    text = "NANA TAYANTUH",
+                    fontSize = 34.sp,
                     fontWeight = FontWeight.Black,
                     color = Color(0xFFFFD700),
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = "Slither & Battle Royale Arena .io",
-                    fontSize = 14.sp,
+                    text = "EXPANSIVE ARENA 11,200M • TACTICAL RADAR",
+                    fontSize = 12.sp,
                     color = Color(0xFF00E5FF),
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "Makan snack lezat, ambil potion ajaib, dan jadilah cacing terpanjang penguasa arena!",
+                    text = "Jelajahi peta raksasa 11.200 unit, gunakan radar taktis untuk melacak musuh, makan makanan lezat, dan kuasai leaderboard!",
                     color = Color.White.copy(alpha = 0.75f),
                     fontSize = 12.sp,
                     lineHeight = 17.sp
@@ -249,7 +271,7 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                     modifier = Modifier
                         .width(260.dp)
                         .height(60.dp)
-                        .shadow(16.dp, RoundedCornerShape(24.dp))
+                        .shadow(18.dp, RoundedCornerShape(24.dp))
                         .testTag("play_game_button")
                 ) {
                     Icon(
@@ -261,7 +283,7 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "MAIN SEKARANG",
-                        fontSize = 20.sp,
+                        fontSize = 19.sp,
                         fontWeight = FontWeight.Black,
                         color = Color.Black
                     )
@@ -286,7 +308,7 @@ fun MainMenuScreen(viewModel: GameViewModel) {
             }
         }
 
-        // BOTTOM BAR: Wardrobe (Shop), Leaderboard, Multiplayer Rooms
+        // BOTTOM BAR: Wardrobe, Leaderboard, Server
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -301,7 +323,11 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                     .height(48.dp)
                     .testTag("shop_button")
             ) {
-                Text("👕", fontSize = 18.sp)
+                Icon(
+                    imageVector = Icons.Default.Palette,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Kostum & Skin", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
@@ -314,7 +340,12 @@ fun MainMenuScreen(viewModel: GameViewModel) {
                     .height(48.dp)
                     .testTag("leaderboard_button")
             ) {
-                Text("🏆", fontSize = 18.sp)
+                Icon(
+                    imageVector = Icons.Default.Leaderboard,
+                    contentDescription = null,
+                    tint = Color.Black,
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Leaderboard Global", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Black)
             }
@@ -362,7 +393,6 @@ private fun WormSlitherPreview(
         val segRadius = 16f
         val colors = skin.colors
 
-        // Draw segments along a figure-8 / elliptical parametric curve
         for (i in segCount downTo 0) {
             val offsetAngle = animAngle - (i * 0.16f)
             val sx = center.x + cos(offsetAngle) * radiusX
@@ -377,7 +407,7 @@ private fun WormSlitherPreview(
                 else -> colors.first()
             }
 
-            drawCircle(color = Color(0xFF151515), radius = segRadius + 2f, center = pos)
+            drawCircle(color = Color(0xFF141414), radius = segRadius + 2f, center = pos)
             drawCircle(color = color, radius = segRadius, center = pos)
             drawCircle(color = Color.White.copy(alpha = 0.4f), radius = segRadius * 0.5f, center = pos - Offset(segRadius * 0.25f, segRadius * 0.25f))
         }
@@ -388,7 +418,7 @@ private fun WormSlitherPreview(
         val headPos = Offset(hx, hy)
         val headRadius = segRadius * 1.3f
 
-        drawCircle(color = Color(0xFF151515), radius = headRadius + 2.5f, center = headPos)
+        drawCircle(color = Color(0xFF141414), radius = headRadius + 2.5f, center = headPos)
         drawCircle(color = colors.first(), radius = headRadius, center = headPos)
         drawCircle(color = Color.White.copy(alpha = 0.4f), radius = headRadius * 0.5f, center = headPos - Offset(headRadius * 0.25f, headRadius * 0.25f))
 
@@ -398,12 +428,12 @@ private fun WormSlitherPreview(
         val leftEye = headPos + Offset(-headRadius * 0.35f, -headRadius * 0.25f)
         val rightEye = headPos + Offset(headRadius * 0.35f, -headRadius * 0.25f)
 
-        drawCircle(color = Color(0xFF151515), radius = eyeRadius + 1.5f, center = leftEye)
-        drawCircle(color = Color(0xFF151515), radius = eyeRadius + 1.5f, center = rightEye)
+        drawCircle(color = Color(0xFF141414), radius = eyeRadius + 1.5f, center = leftEye)
+        drawCircle(color = Color(0xFF141414), radius = eyeRadius + 1.5f, center = rightEye)
         drawCircle(color = Color.White, radius = eyeRadius, center = leftEye)
         drawCircle(color = Color.White, radius = eyeRadius, center = rightEye)
-        drawCircle(color = Color(0xFF151515), radius = pupilRadius, center = leftEye)
-        drawCircle(color = Color(0xFF151515), radius = pupilRadius, center = rightEye)
+        drawCircle(color = Color(0xFF141414), radius = pupilRadius, center = leftEye)
+        drawCircle(color = Color(0xFF141414), radius = pupilRadius, center = rightEye)
         drawCircle(color = Color.White, radius = pupilRadius * 0.45f, center = leftEye - Offset(2f, 2f))
         drawCircle(color = Color.White, radius = pupilRadius * 0.45f, center = rightEye - Offset(2f, 2f))
 
@@ -445,7 +475,7 @@ private fun EditNameDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2638)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF161E2E)),
             modifier = Modifier.width(360.dp)
         ) {
             Column(
@@ -453,7 +483,7 @@ private fun EditNameDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Ganti Nama Cacing",
+                    text = "Ganti Nama Pemain",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = Color.White
@@ -463,7 +493,7 @@ private fun EditNameDialog(
                 OutlinedTextField(
                     value = text,
                     onValueChange = { if (it.length <= 15) text = it },
-                    label = { Text("Nama Pemain") },
+                    label = { Text("Nama Cacing") },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
@@ -508,7 +538,7 @@ private fun ChooseRoomDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF161F33)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF131A29)),
             modifier = Modifier
                 .width(420.dp)
                 .border(2.dp, Color(0xFF3F51B5), RoundedCornerShape(24.dp))
@@ -517,12 +547,21 @@ private fun ChooseRoomDialog(
                 modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "🌐 PILIH ROOM MULTIPLAYER",
-                    fontWeight = FontWeight.Black,
-                    fontSize = 18.sp,
-                    color = Color.White
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Public,
+                        contentDescription = null,
+                        tint = Color(0xFF00E5FF),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "PILIH SERVER ROOM",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp,
+                        color = Color.White
+                    )
+                }
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Catalog.ROOMS.forEach { room ->
@@ -532,7 +571,7 @@ private fun ChooseRoomDialog(
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (isCurrent) Color(0x3300E676) else Color(0xFF202A42))
+                            .background(if (isCurrent) Color(0x3300E676) else Color(0xFF1C253B))
                             .border(
                                 1.5.dp,
                                 if (isCurrent) Color(0xFF00E676) else Color.Transparent,

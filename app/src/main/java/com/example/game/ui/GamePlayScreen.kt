@@ -21,8 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +56,9 @@ fun GamePlayScreen(viewModel: GameViewModel) {
     var joystickThumb by remember { mutableStateOf<Offset?>(null) }
     val joystickMaxRadius = 80f
 
+    // Radar expanded state
+    var isRadarExpanded by remember { mutableStateOf(false) }
+
     // Screen dimension state
     var screenWidth by remember { mutableFloatStateOf(1920f) }
     var screenHeight by remember { mutableFloatStateOf(1080f) }
@@ -67,13 +73,13 @@ fun GamePlayScreen(viewModel: GameViewModel) {
         }
     }
 
-    // 60 FPS Smooth Game Loop
+    // 60 FPS Smooth Game Loop with clamped delta-time for silky gameplay
     LaunchedEffect(world.isGameOver, world.isPaused) {
         var lastNanos = 0L
         while (!world.isGameOver) {
             withFrameNanos { now ->
                 if (lastNanos > 0L && !world.isPaused) {
-                    val dt = ((now - lastNanos) / 1_000_000_000f).coerceIn(0.005f, 0.05f)
+                    val dt = ((now - lastNanos) / 1_000_000_000f).coerceIn(0.008f, 0.033f)
                     world.update(dt)
                     frameTick++
                 }
@@ -87,27 +93,26 @@ fun GamePlayScreen(viewModel: GameViewModel) {
             .fillMaxSize()
             .background(Color(0xFF090D17))
             .pointerInput(Unit) {
-                // Immediate touch & drag gesture handling: steer as soon as touch starts!
+                // Immediate, responsive touch & drag steering
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
-                    // If touch is on bottom-right boost button area, skip steering
-                    if (down.position.x > size.width - 240f && down.position.y > size.height - 240f) {
+                    // If touch is on bottom-right boost button or radar area, let UI controls handle it
+                    if (down.position.x > size.width - 320f && down.position.y > size.height - 240f) {
                         return@awaitEachGesture
                     }
 
                     val touchPos = down.position
                     val screenCenter = Offset(size.width / 2f, size.height / 2f)
 
-                    if (touchPos.x < size.width * 0.55f) {
+                    if (touchPos.x < size.width * 0.50f) {
                         joystickCenter = touchPos
                         joystickThumb = touchPos
                     } else {
-                        // Direct touch steer
+                        // Direct touch steer towards touch location relative to center
                         val diff = touchPos - screenCenter
                         world.playerWorm.steerAngle(atan2(diff.y, diff.x))
                     }
 
-                    // Track drag movement
                     do {
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull() ?: break
@@ -143,10 +148,8 @@ fun GamePlayScreen(viewModel: GameViewModel) {
             screenWidth = size.width
             screenHeight = size.height
 
-            // Force draw every frame tick
             if (frameTick >= 0L) {
                 renderer.drawWorld(this, world, size.width, size.height)
-                renderer.drawMinimap(this, world, size.width, size.height)
             }
 
             // Draw Virtual Touch Joystick
@@ -162,7 +165,7 @@ fun GamePlayScreen(viewModel: GameViewModel) {
                     color = Color(0xFF00E5FF).copy(alpha = 0.45f),
                     radius = joystickMaxRadius,
                     center = center,
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.5f)
+                    style = Stroke(width = 3.5f)
                 )
                 drawCircle(
                     color = Color(0xFF00E5FF).copy(alpha = 0.85f),
@@ -175,7 +178,7 @@ fun GamePlayScreen(viewModel: GameViewModel) {
         // HUD - Top Left: Player Status Bar
         TopLeftHud(world = world, modifier = Modifier.align(Alignment.TopStart))
 
-        // HUD - Top Center: Pause Button & Room Info
+        // HUD - Top Center: Room Info & Pause Button
         TopCenterHud(
             world = world,
             roomName = viewModel.selectedRoom.collectAsState().value.name,
@@ -186,7 +189,17 @@ fun GamePlayScreen(viewModel: GameViewModel) {
         // HUD - Top Right: Live Room Leaderboard
         TopRightLeaderboard(world = world, modifier = Modifier.align(Alignment.TopEnd))
 
-        // HUD - Bottom Right: Speed Boost Button
+        // HUD - Bottom Right: Dedicated Modern Tactical Radar Minimap
+        TacticalRadarOverlay(
+            world = world,
+            isExpanded = isRadarExpanded,
+            onToggleExpand = { isRadarExpanded = !isRadarExpanded },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 16.dp)
+        )
+
+        // HUD - Bottom Right: Ergonomic Speed Boost (TURBO) Button
         BoostButton(
             isBoosting = world.playerWorm.isBoosting,
             onBoostChanged = { boosting ->
@@ -194,7 +207,7 @@ fun GamePlayScreen(viewModel: GameViewModel) {
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 28.dp, bottom = 28.dp)
+                .padding(end = if (isRadarExpanded) 240.dp else 170.dp, bottom = 22.dp)
         )
 
         // Pause Modal Dialog
@@ -206,7 +219,7 @@ fun GamePlayScreen(viewModel: GameViewModel) {
             )
         }
 
-        // Game Over Dialog (shown immediately when isGameOver is true)
+        // Game Over Dialog
         if (world.isGameOver) {
             GameOverModal(
                 world = world,
@@ -222,6 +235,217 @@ fun GamePlayScreen(viewModel: GameViewModel) {
     }
 }
 
+// MODERN TACTICAL RADAR MINIMAP (No Emojis, Sleek Worms Zone Design)
+@Composable
+private fun TacticalRadarOverlay(
+    world: GameWorld,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val radarSize = if (isExpanded) 200.dp else 134.dp
+    val player = world.playerWorm
+    val posX = player.headPosition.x.toInt()
+    val posY = player.headPosition.y.toInt()
+    val sectorName = world.getPlayerSectorName()
+
+    Card(
+        modifier = modifier
+            .width(radarSize)
+            .shadow(16.dp, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xEE09111F))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.5.dp, Color(0xFF00E5FF).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                .padding(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Radar Header: Sector title & expand toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF00E676))
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = sectorName,
+                        color = Color(0xFF00E5FF),
+                        fontWeight = FontWeight.Black,
+                        fontSize = if (isExpanded) 11.sp else 9.sp
+                    )
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ZoomInMap else Icons.Default.ZoomOutMap,
+                    contentDescription = "Zoom Radar",
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clickable { onToggleExpand() }
+                )
+            }
+
+            // Radar Circular Canvas
+            Box(
+                modifier = Modifier
+                    .size(if (isExpanded) 160.dp else 100.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF060A13))
+                    .border(1.5.dp, Color(0xFF00E5FF), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val radius = size.minDimension / 2f
+                    val center = Offset(size.width / 2f, size.height / 2f)
+                    val worldRadius = world.arenaRadius
+
+                    // 1. Radar Distance Rings (25%, 50%, 75%, 100%)
+                    drawCircle(
+                        color = Color(0x2200E5FF),
+                        radius = radius * 0.33f,
+                        center = center,
+                        style = Stroke(width = 1f)
+                    )
+                    drawCircle(
+                        color = Color(0x2200E5FF),
+                        radius = radius * 0.66f,
+                        center = center,
+                        style = Stroke(width = 1f)
+                    )
+
+                    // 2. Crosshairs (Axes)
+                    drawLine(
+                        color = Color(0x3300E5FF),
+                        start = Offset(center.x - radius, center.y),
+                        end = Offset(center.x + radius, center.y),
+                        strokeWidth = 1f
+                    )
+                    drawLine(
+                        color = Color(0x3300E5FF),
+                        start = Offset(center.x, center.y - radius),
+                        end = Offset(center.x, center.y + radius),
+                        strokeWidth = 1f
+                    )
+
+                    // 3. Rotating 360° Radar Scanner Beam
+                    val scanAngle = world.radarScanAngle
+                    val beamEnd = center + Offset(cos(scanAngle) * radius, sin(scanAngle) * radius)
+                    drawLine(
+                        color = Color(0x9900E676),
+                        start = center,
+                        end = beamEnd,
+                        strokeWidth = 2f
+                    )
+
+                    // 4. Food Nebula Micro-dots (Sampled)
+                    val sampleStep = max(1, world.foods.size / (if (isExpanded) 90 else 50))
+                    for (i in 0 until world.foods.size step sampleStep) {
+                        val f = world.foods[i]
+                        val normX = f.position.x / worldRadius
+                        val normY = f.position.y / worldRadius
+                        val dotX = center.x + normX * (radius * 0.92f)
+                        val dotY = center.y + normY * (radius * 0.92f)
+                        drawCircle(
+                            color = Color(0x88FFD700),
+                            radius = if (isExpanded) 1.8f else 1.2f,
+                            center = Offset(dotX, dotY)
+                        )
+                    }
+
+                    // 5. Enemy Worms (Red Blips) + Highlight Top #1 Leader
+                    val maxScoreBot = world.botWorms.maxByOrNull { it.score }
+                    for (bot in world.botWorms) {
+                        if (!bot.isAlive) continue
+                        val normX = bot.headPosition.x / worldRadius
+                        val normY = bot.headPosition.y / worldRadius
+                        val dotX = center.x + normX * (radius * 0.92f)
+                        val dotY = center.y + normY * (radius * 0.92f)
+                        val isLeader = bot.id == maxScoreBot?.id
+
+                        if (isLeader) {
+                            // Golden glowing crown/diamond for top leader
+                            drawCircle(
+                                color = Color(0x66FFD700),
+                                radius = if (isExpanded) 6f else 4.5f,
+                                center = Offset(dotX, dotY)
+                            )
+                            drawCircle(
+                                color = Color(0xFFFFD700),
+                                radius = if (isExpanded) 3.5f else 2.6f,
+                                center = Offset(dotX, dotY)
+                            )
+                        } else {
+                            drawCircle(
+                                color = Color(0xFFFF3D00),
+                                radius = if (isExpanded) 2.8f else 2.2f,
+                                center = Offset(dotX, dotY)
+                            )
+                        }
+                    }
+
+                    // 6. Player Worm (Cyan Directional Heading Arrow)
+                    if (world.playerWorm.isAlive) {
+                        val normX = world.playerWorm.headPosition.x / worldRadius
+                        val normY = world.playerWorm.headPosition.y / worldRadius
+                        val dotX = center.x + normX * (radius * 0.92f)
+                        val dotY = center.y + normY * (radius * 0.92f)
+                        val pCenter = Offset(dotX, dotY)
+
+                        val pAngle = world.playerWorm.currentAngle
+                        val arrLen = if (isExpanded) 9f else 7f
+                        val tip = pCenter + Offset(cos(pAngle) * arrLen, sin(pAngle) * arrLen)
+                        val b1 = pCenter + Offset(cos(pAngle + 2.4f) * (arrLen * 0.8f), sin(pAngle + 2.4f) * (arrLen * 0.8f))
+                        val b2 = pCenter + Offset(cos(pAngle - 2.4f) * (arrLen * 0.8f), sin(pAngle - 2.4f) * (arrLen * 0.8f))
+
+                        val arrPath = Path().apply {
+                            moveTo(tip.x, tip.y)
+                            lineTo(b1.x, b1.y)
+                            lineTo(pCenter.x, pCenter.y)
+                            lineTo(b2.x, b2.y)
+                            close()
+                        }
+                        drawCircle(color = Color(0x6600E5FF), radius = if (isExpanded) 8f else 5.5f, center = pCenter)
+                        drawPath(arrPath, color = Color(0xFF00E5FF))
+                    }
+                }
+            }
+
+            // Radar Footer Coordinates
+            Spacer(modifier = Modifier.height(3.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "MAP 11.2KM",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "X:$posX Y:$posY",
+                    color = Color(0xFF00E5FF),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+// MODERN TOP-LEFT PLAYER HUD
 @Composable
 private fun TopLeftHud(world: GameWorld, modifier: Modifier = Modifier) {
     val player = world.playerWorm
@@ -229,23 +453,30 @@ private fun TopLeftHud(world: GameWorld, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .padding(16.dp)
-            .shadow(8.dp, RoundedCornerShape(16.dp))
-            .background(Color(0xCC131826), RoundedCornerShape(16.dp))
-            .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(16.dp))
+            .shadow(10.dp, RoundedCornerShape(18.dp))
+            .background(Color(0xDD0E1526), RoundedCornerShape(18.dp))
+            .border(1.dp, Color(0x334A6999), RoundedCornerShape(18.dp))
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Player Avatar circle
+            // Player Avatar with metallic level border
             Box(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(player.skin.colors.first()),
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(player.skin.colors.first(), Color(0xFF10141E))
+                        )
+                    )
+                    .border(2.dp, Color(0xFF00E5FF), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = player.hat.iconEmoji.ifEmpty { "🐛" },
-                    fontSize = 18.sp
+                Icon(
+                    imageVector = Icons.Default.SportsEsports,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
@@ -253,28 +484,47 @@ private fun TopLeftHud(world: GameWorld, modifier: Modifier = Modifier) {
                 Text(
                     text = player.name,
                     color = Color.White,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     fontSize = 15.sp
                 )
-                Text(
-                    text = "Skor: ${player.score}",
-                    color = Color(0xFFFFD700),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "SKOR: ",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "${player.score}",
+                        color = Color(0xFFFFD700),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
+        // Modern stats pills with Material Icons (NO EMOJIS)
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Kills
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("⚔️", fontSize = 12.sp)
-                Spacer(modifier = Modifier.width(3.dp))
+            // Kills pill
+            Row(
+                modifier = Modifier
+                    .background(Color(0x33FF5252), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = Color(0xFFFF5252),
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "${world.sessionKills}",
                     color = Color(0xFFFF5252),
@@ -282,23 +532,45 @@ private fun TopLeftHud(world: GameWorld, modifier: Modifier = Modifier) {
                     fontSize = 12.sp
                 )
             }
-            // Coins
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🪙", fontSize = 12.sp)
-                Spacer(modifier = Modifier.width(3.dp))
+
+            // Coins pill
+            Row(
+                modifier = Modifier
+                    .background(Color(0x33FFD700), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MonetizationOn,
+                    contentDescription = null,
+                    tint = Color(0xFFFFD700),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "+${world.coinsCollected}",
-                    color = Color(0xFFFFEA00),
+                    color = Color(0xFFFFD700),
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp
                 )
             }
-            // Length
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("📏", fontSize = 12.sp)
-                Spacer(modifier = Modifier.width(3.dp))
+
+            // Length pill
+            Row(
+                modifier = Modifier
+                    .background(Color(0x3300E676), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LinearScale,
+                    contentDescription = null,
+                    tint = Color(0xFF00E676),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "${player.segments.size}",
+                    text = "${player.segments.size}m",
                     color = Color(0xFF00E676),
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp
@@ -306,19 +578,27 @@ private fun TopLeftHud(world: GameWorld, modifier: Modifier = Modifier) {
             }
         }
 
-        // Spawn Shield or Active Potions Badges
+        // Active Potions / Shield Badges
         if (player.hasShield || player.activePotions.isNotEmpty()) {
             Spacer(modifier = Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (player.spawnShieldTimer > 0f) {
-                    Box(
+                    Row(
                         modifier = Modifier
                             .background(Color(0x3300E5FF), RoundedCornerShape(8.dp))
                             .border(1.dp, Color(0xFF00E5FF), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Security,
+                            contentDescription = null,
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = "🛡️ Kebal ${player.spawnShieldTimer.toInt() + 1}s",
+                            text = "SHIELD ${player.spawnShieldTimer.toInt() + 1}s",
                             color = Color(0xFF00E5FF),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
@@ -346,6 +626,7 @@ private fun TopLeftHud(world: GameWorld, modifier: Modifier = Modifier) {
     }
 }
 
+// TOP-CENTER ROOM INFO & PAUSE
 @Composable
 private fun TopCenterHud(
     world: GameWorld,
@@ -356,8 +637,8 @@ private fun TopCenterHud(
     Row(
         modifier = modifier
             .padding(top = 12.dp)
-            .background(Color(0xAA131826), RoundedCornerShape(20.dp))
-            .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(20.dp))
+            .background(Color(0xCC0E1526), RoundedCornerShape(20.dp))
+            .border(1.dp, Color(0x2800E5FF), RoundedCornerShape(20.dp))
             .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -372,7 +653,7 @@ private fun TopCenterHud(
             text = roomName,
             color = Color.White.copy(alpha = 0.9f),
             fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.width(14.dp))
         IconButton(
@@ -391,6 +672,7 @@ private fun TopCenterHud(
     }
 }
 
+// TOP-RIGHT LEADERBOARD
 @Composable
 private fun TopRightLeaderboard(world: GameWorld, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(true) }
@@ -401,11 +683,11 @@ private fun TopRightLeaderboard(world: GameWorld, modifier: Modifier = Modifier)
     Column(
         modifier = modifier
             .padding(16.dp)
-            .shadow(8.dp, RoundedCornerShape(16.dp))
-            .background(Color(0xDD131826), RoundedCornerShape(16.dp))
-            .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(16.dp))
+            .shadow(10.dp, RoundedCornerShape(18.dp))
+            .background(Color(0xDD0E1526), RoundedCornerShape(18.dp))
+            .border(1.dp, Color(0x334A6999), RoundedCornerShape(18.dp))
             .padding(10.dp)
-            .widthIn(min = 175.dp, max = 220.dp)
+            .widthIn(min = 180.dp, max = 225.dp)
     ) {
         Row(
             modifier = Modifier
@@ -415,19 +697,25 @@ private fun TopRightLeaderboard(world: GameWorld, modifier: Modifier = Modifier)
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🏆", fontSize = 13.sp)
-                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.Leaderboard,
+                    contentDescription = null,
+                    tint = Color(0xFFFFD700),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Peringkat Room",
+                    text = "TOP ROOM",
                     color = Color.White,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     fontSize = 12.sp
                 )
             }
-            Text(
-                text = if (expanded) "▲" else "▼",
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 10.sp
+            Icon(
+                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.size(16.dp)
             )
         }
 
@@ -457,10 +745,24 @@ private fun TopRightLeaderboard(world: GameWorld, modifier: Modifier = Modifier)
                             color = textColor,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
-                            modifier = Modifier.width(24.dp)
+                            modifier = Modifier.width(22.dp)
                         )
+                        // Country code badge
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFF222F47), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = item.countryCode,
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = item.name.take(9),
+                            text = item.name.take(8),
                             color = textColor,
                             fontWeight = if (isPlayer) FontWeight.Bold else FontWeight.Normal,
                             fontSize = 11.sp
@@ -478,27 +780,17 @@ private fun TopRightLeaderboard(world: GameWorld, modifier: Modifier = Modifier)
     }
 }
 
+// MODERN TURBO BOOST BUTTON
 @Composable
 private fun BoostButton(
     isBoosting: Boolean,
     onBoostChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "boostPulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = if (isBoosting) 1.15f else 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(if (isBoosting) 300 else 900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
-
     Box(
         modifier = modifier
             .size(76.dp)
-            .shadow(14.dp, CircleShape)
+            .shadow(16.dp, CircleShape)
             .clip(CircleShape)
             .background(
                 brush = Brush.radialGradient(
@@ -508,7 +800,7 @@ private fun BoostButton(
             )
             .border(
                 width = 3.dp,
-                color = if (isBoosting) Color(0xFFFFEA00) else Color.White.copy(alpha = 0.8f),
+                color = if (isBoosting) Color(0xFFFFEA00) else Color.White.copy(alpha = 0.85f),
                 shape = CircleShape
             )
             .pointerInput(Unit) {
@@ -544,6 +836,7 @@ private fun BoostButton(
     }
 }
 
+// PAUSE DIALOG
 @Composable
 private fun PauseDialog(
     viewModel: GameViewModel,
@@ -553,7 +846,7 @@ private fun PauseDialog(
     Dialog(onDismissRequest = onResume) {
         Card(
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2133)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF131A29)),
             modifier = Modifier
                 .width(360.dp)
                 .border(2.dp, Color(0xFF3F51B5), RoundedCornerShape(24.dp))
@@ -563,7 +856,7 @@ private fun PauseDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "⏸️ GAME DIJEDA",
+                    text = "GAME DIJEDA",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
                     color = Color.White
@@ -592,7 +885,7 @@ private fun PauseDialog(
                         .height(44.dp)
                 ) {
                     Text(
-                        text = if (viewModel.soundEnabled.collectAsState().value) "🔊 Suara: AKTIF" else "🔇 Suara: MATI",
+                        text = if (viewModel.soundEnabled.collectAsState().value) "Suara: AKTIF" else "Suara: MATI",
                         color = Color.White
                     )
                 }
@@ -615,6 +908,7 @@ private fun PauseDialog(
     }
 }
 
+// GAME OVER MODAL
 @Composable
 private fun GameOverModal(
     world: GameWorld,
@@ -625,7 +919,7 @@ private fun GameOverModal(
     Dialog(onDismissRequest = {}) {
         Card(
             shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF131A29)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF111726)),
             modifier = Modifier
                 .width(420.dp)
                 .shadow(24.dp, RoundedCornerShape(28.dp))
@@ -636,7 +930,7 @@ private fun GameOverModal(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "💥 GAME OVER!",
+                    text = "GAME OVER",
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Black,
                     color = Color(0xFFFF1744)
@@ -653,7 +947,7 @@ private fun GameOverModal(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF1E283D), RoundedCornerShape(16.dp))
+                        .background(Color(0xFF1B2338), RoundedCornerShape(16.dp))
                         .padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {

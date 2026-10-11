@@ -122,28 +122,28 @@ object Catalog {
     )
 
     val HATS = listOf(
-        Hat("hat_none", "Tanpa Topi", HatType.NONE, 0, "🚫", isUnlocked = true),
-        Hat("hat_crown", "Mahkota Raja", HatType.CROWN, 200, "👑", isUnlocked = false),
-        Hat("hat_shades", "Kacamata Hitam", HatType.SUNGLASSES, 150, "😎", isUnlocked = false),
-        Hat("hat_party", "Topi Pesta", HatType.PARTY_HAT, 120, "🥳", isUnlocked = false),
-        Hat("hat_cap", "Topi Baseball", HatType.BASEBALL_CAP, 140, "🧢", isUnlocked = false),
-        Hat("hat_cat", "Telinga Kucing", HatType.CAT_EARS, 220, "🐱", isUnlocked = false),
-        Hat("hat_viking", "Tanduk Viking", HatType.VIKING_HORNS, 250, "⚔️", isUnlocked = false),
-        Hat("hat_halo", "Cincin Malaikat", HatType.ANGEL_HALO, 280, "😇", isUnlocked = false),
-        Hat("hat_pirate", "Topi Bajak Laut", HatType.PIRATE_HAT, 300, "🏴‍☠️", isUnlocked = false)
+        Hat("hat_none", "Tanpa Topi", HatType.NONE, 0, "DEFAULT", isUnlocked = true),
+        Hat("hat_crown", "Mahkota Raja", HatType.CROWN, 200, "ROYAL", isUnlocked = false),
+        Hat("hat_shades", "Kacamata Hitam", HatType.SUNGLASSES, 150, "COOL", isUnlocked = false),
+        Hat("hat_party", "Topi Pesta", HatType.PARTY_HAT, 120, "PARTY", isUnlocked = false),
+        Hat("hat_cap", "Topi Baseball", HatType.BASEBALL_CAP, 140, "SPORT", isUnlocked = false),
+        Hat("hat_cat", "Telinga Kucing", HatType.CAT_EARS, 220, "KAWAII", isUnlocked = false),
+        Hat("hat_viking", "Tanduk Viking", HatType.VIKING_HORNS, 250, "WARRIOR", isUnlocked = false),
+        Hat("hat_halo", "Cincin Malaikat", HatType.ANGEL_HALO, 280, "MYTHIC", isUnlocked = false),
+        Hat("hat_pirate", "Topi Bajak Laut", HatType.PIRATE_HAT, 300, "PIRATE", isUnlocked = false)
     )
 
     val FACES = listOf(
-        Face("face_happy", "Senyum Ceria", FaceType.HAPPY_SMILE, 0, "😄", isUnlocked = true),
-        Face("face_open", "Makan Lahap", FaceType.OPEN_MOUTH, 120, "😃", isUnlocked = false),
-        Face("face_tongue", "Julur Lidah", FaceType.SILLY_TONGUE, 150, "😋", isUnlocked = false),
-        Face("face_cool", "Keren Mantap", FaceType.COOL_GRIN, 180, "😏", isUnlocked = false)
+        Face("face_happy", "Senyum Ceria", FaceType.HAPPY_SMILE, 0, "HAPPY", isUnlocked = true),
+        Face("face_open", "Makan Lahap", FaceType.OPEN_MOUTH, 120, "HUNGRY", isUnlocked = false),
+        Face("face_tongue", "Julur Lidah", FaceType.SILLY_TONGUE, 150, "PLAYFUL", isUnlocked = false),
+        Face("face_cool", "Keren Mantap", FaceType.COOL_GRIN, 180, "SMUG", isUnlocked = false)
     )
 
     val ROOMS = listOf(
-        GameRoom("room_asia_1", "Asia VIP Arena #1", "Jakarta 🇮🇩", 18, 42, 50, "POPULER"),
-        GameRoom("room_global", "Global Champions Hall", "Singapore 🇸🇬", 24, 38, 50, "HOT"),
-        GameRoom("room_cyber", "Cyber Neon City", "Tokyo 🇯🇵", 45, 29, 50, "EVENT"),
-        GameRoom("room_candy", "Candyland Battle Royale", "Sydney 🇦🇺", 65, 33, 50, "BARU")
+        GameRoom("room_asia_1", "Asia VIP Arena #1", "Jakarta ID", 18, 48, 50, "POPULER"),
+        GameRoom("room_global", "Global Champions Hall", "Singapore SG", 24, 45, 50, "HOT"),
+        GameRoom("room_cyber", "Cyber Neon City", "Tokyo JP", 42, 38, 50, "EVENT"),
+        GameRoom("room_candy", "Candyland Battle Royale", "Sydney AU", 62, 34, 50, "BARU")
     )
 }

@@ -72,7 +72,7 @@ data class Hat(
     val name: String,
     val type: HatType,
     val price: Int = 0,
-    val iconEmoji: String,
+    val tag: String = "BASIC",
     val isUnlocked: Boolean = false
 )
 
@@ -88,7 +88,7 @@ data class Face(
     val name: String,
     val type: FaceType,
     val price: Int = 0,
-    val iconEmoji: String,
+    val tag: String = "EXPRESSION",
     val isUnlocked: Boolean = false
 )
 
@@ -102,7 +102,7 @@ data class LeaderboardEntry(
     val name: String,
     val score: Int,
     val kills: Int = 0,
-    val countryFlag: String = "🇮🇩",
+    val countryCode: String = "ID",
     val isPlayer: Boolean = false
 )
 

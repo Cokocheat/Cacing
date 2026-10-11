@@ -22,11 +22,11 @@ class Worm(
     // Movement & Orientation
     var currentAngle: Float = 0f // in radians
     var targetAngle: Float = 0f
-    var turnSpeed: Float = 6.2f // rad per second for agile responsive steering
+    var turnSpeed: Float = 7.5f // Responsive and silky-smooth steering
 
     // Speed
-    var normalSpeed: Float = 175f // world units/sec
-    var boostSpeedMultiplier: Float = 1.85f
+    var normalSpeed: Float = 180f // world units/sec
+    var boostSpeedMultiplier: Float = 1.9f
     var isBoosting: Boolean = false
 
     // Stats
@@ -107,7 +107,8 @@ class Worm(
         while (diff > PI) diff -= (2 * PI).toFloat()
         while (diff < -PI) diff += (2 * PI).toFloat()
 
-        val maxTurn = turnSpeed * deltaTime
+        val actualTurnSpeed = if (isBoosting) turnSpeed * 1.15f else turnSpeed
+        val maxTurn = actualTurnSpeed * deltaTime
         currentAngle += diff.coerceIn(-maxTurn, maxTurn)
 
         // Effective speed
@@ -128,7 +129,7 @@ class Worm(
         if (segments.isEmpty()) {
             segments.add(headPosition)
         } else {
-            // First segment follows head
+            // First segment follows head smoothly
             var prev = headPosition
             for (i in 0 until segments.size) {
                 val current = segments[i]
@@ -157,20 +158,18 @@ class Worm(
     fun grow(points: Int) {
         score += points
         // Calculate desired segments based on score
-        val targetSegments = (26 + (score / 32)).coerceAtMost(350)
-        val toAdd = targetSegments - segments.size
-        if (toAdd > 0) {
-            val last = segments.lastOrNull() ?: headPosition
-            for (i in 0 until min(toAdd, 4)) {
-                segments.add(last)
-            }
+        val targetSegments = (26 + (score / 30)).coerceAtMost(400)
+        while (segments.size < targetSegments) {
+            val tail = segments.lastOrNull() ?: headPosition
+            segments.add(tail)
         }
     }
 
-    fun shrinkForBoost(amount: Int = 1) {
-        if (score > 60 && segments.size > 22) {
-            score = max(50, score - amount)
-            if (segments.size > (26 + (score / 32))) {
+    fun shrinkForBoost(cost: Int) {
+        if (score > 120) {
+            score -= cost
+            val targetSegments = (26 + (score / 30)).coerceAtMost(400)
+            if (segments.size > targetSegments && segments.size > 26) {
                 segments.removeAt(segments.lastIndex)
             }
         }

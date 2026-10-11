@@ -12,17 +12,15 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CardGiftcard
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,28 +32,28 @@ import kotlin.math.sin
 
 @Composable
 fun ShopScreen(viewModel: GameViewModel) {
-    BackHandler {
-        viewModel.setScreen(AppScreen.MAIN_MENU)
-    }
-
     val coins by viewModel.coins.collectAsState()
     val selectedSkin by viewModel.selectedSkin.collectAsState()
     val selectedHat by viewModel.selectedHat.collectAsState()
     val selectedFace by viewModel.selectedFace.collectAsState()
 
-    var activeTab by remember { mutableStateOf("SKINS") } // "SKINS", "HATS", "FACES"
+    var activeTab by remember { mutableStateOf("SKINS") } // SKINS, HATS, FACES
     var previewSkin by remember { mutableStateOf(selectedSkin) }
     var previewHat by remember { mutableStateOf(selectedHat) }
     var previewFace by remember { mutableStateOf(selectedFace) }
 
+    BackHandler {
+        viewModel.setScreen(AppScreen.MAIN_MENU)
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F1523))
-            .padding(16.dp)
+            .background(Color(0xFF0C101A))
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top Bar
+            // Header: Title, Back button, and Coins balance
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -65,33 +63,40 @@ fun ShopScreen(viewModel: GameViewModel) {
                     IconButton(
                         onClick = { viewModel.setScreen(AppScreen.MAIN_MENU) },
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(38.dp)
                             .clip(CircleShape)
-                            .background(Color(0x33FFFFFF))
+                            .background(Color(0xFF1E283D))
                             .testTag("shop_back_button")
                     ) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.White)
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "LEMARI SKIN & AKSESORIS",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
-                    )
+                    Column {
+                        Text(
+                            text = "LEMARI KOSTUM & SKIN",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFFFFD700)
+                        )
+                        Text(
+                            text = "Kustomisasi tampilan cacing favoritmu",
+                            fontSize = 11.sp,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                    }
                 }
 
-                // Coins Indicator + Bonus Coins Button
+                // Coins balance & Claim Bonus Button
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(
                         onClick = { viewModel.addBonusCoins(300) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF651FFF)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.height(36.dp).testTag("claim_bonus_coins")
                     ) {
-                        Icon(imageVector = Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.CardGiftcard, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("+300 Koin", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("+300 Koin", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.width(10.dp))
@@ -104,7 +109,12 @@ fun ShopScreen(viewModel: GameViewModel) {
                             .padding(horizontal = 14.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("🪙", fontSize = 16.sp)
+                        Icon(
+                            imageVector = Icons.Default.MonetizationOn,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(18.dp)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "$coins Koin",
@@ -211,7 +221,9 @@ fun ShopScreen(viewModel: GameViewModel) {
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
                                         modifier = Modifier.fillMaxWidth().testTag("buy_skin_button")
                                     ) {
-                                        Text("Beli (🪙 ${previewSkin.price})", color = Color.Black, fontWeight = FontWeight.Bold)
+                                        Icon(imageVector = Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Beli (${previewSkin.price})", color = Color.Black, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -244,7 +256,9 @@ fun ShopScreen(viewModel: GameViewModel) {
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
                                         modifier = Modifier.fillMaxWidth().testTag("buy_hat_button")
                                     ) {
-                                        Text("Beli (🪙 ${previewHat.price})", color = Color.Black, fontWeight = FontWeight.Bold)
+                                        Icon(imageVector = Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Beli (${previewHat.price})", color = Color.Black, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -277,7 +291,9 @@ fun ShopScreen(viewModel: GameViewModel) {
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
                                         modifier = Modifier.fillMaxWidth().testTag("buy_face_button")
                                     ) {
-                                        Text("Beli (🪙 ${previewFace.price})", color = Color.Black, fontWeight = FontWeight.Bold)
+                                        Icon(imageVector = Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Beli (${previewFace.price})", color = Color.Black, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -287,7 +303,7 @@ fun ShopScreen(viewModel: GameViewModel) {
 
                 // RIGHT: Tabs + Grid of Items
                 Column(modifier = Modifier.weight(1f)) {
-                    // Tab Selector: Skins, Hats, Faces
+                    // Modern Tab Selector with clean vector icons (No Emojis!)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -296,19 +312,22 @@ fun ShopScreen(viewModel: GameViewModel) {
                             .padding(4.dp)
                     ) {
                         TabButton(
-                            title = "🎨 Skin Tubuh (${Catalog.SKINS.size})",
+                            title = "Skin Tubuh (${Catalog.SKINS.size})",
+                            icon = Icons.Default.Palette,
                             isSelected = activeTab == "SKINS",
                             onClick = { activeTab = "SKINS" },
                             modifier = Modifier.weight(1f)
                         )
                         TabButton(
-                            title = "👑 Topi & Aksesoris (${Catalog.HATS.size})",
+                            title = "Topi & Aksesoris (${Catalog.HATS.size})",
+                            icon = Icons.Default.Diamond,
                             isSelected = activeTab == "HATS",
                             onClick = { activeTab = "HATS" },
                             modifier = Modifier.weight(1f)
                         )
                         TabButton(
-                            title = "😃 Wajah & Ekspresi (${Catalog.FACES.size})",
+                            title = "Ekspresi Wajah (${Catalog.FACES.size})",
+                            icon = Icons.Default.Mood,
                             isSelected = activeTab == "FACES",
                             onClick = { activeTab = "FACES" },
                             modifier = Modifier.weight(1f)
@@ -378,37 +397,15 @@ fun ShopScreen(viewModel: GameViewModel) {
                                     val isEquipped = selectedFace.id == face.id
                                     val isCurrentPreview = previewFace.id == face.id
 
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { previewFace = face }
-                                            .border(
-                                                width = if (isCurrentPreview) 2.dp else 1.dp,
-                                                color = if (isCurrentPreview) Color(0xFF00E5FF) else if (isEquipped) Color(0xFF00E676) else Color(0x22FFFFFF),
-                                                shape = RoundedCornerShape(16.dp)
-                                            ),
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = if (isCurrentPreview) Color(0xFF1E283D) else Color(0xFF141A29)
-                                        )
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(10.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            Text(face.iconEmoji, fontSize = 28.sp)
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(face.name, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            if (isEquipped) {
-                                                Text("Dipakai", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                            } else if (isUnlocked) {
-                                                Text("Tersedia", color = Color(0xFF00E5FF), fontSize = 11.sp)
-                                            } else {
-                                                Text("🪙 ${face.price}", color = Color(0xFFFFD700), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                            }
+                                    FaceItemCard(
+                                        face = face,
+                                        isUnlocked = isUnlocked,
+                                        isEquipped = isEquipped,
+                                        isSelected = isCurrentPreview,
+                                        onClick = {
+                                            previewFace = face
                                         }
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -422,6 +419,7 @@ fun ShopScreen(viewModel: GameViewModel) {
 @Composable
 private fun TabButton(
     title: String,
+    icon: ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -434,12 +432,21 @@ private fun TabButton(
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = title,
-            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = title,
+                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+        }
     }
 }
 
@@ -503,7 +510,11 @@ private fun SkinItemCard(
             } else if (isUnlocked) {
                 Text("Tersedia", color = Color(0xFF00E5FF), fontSize = 11.sp)
             } else {
-                Text("🪙 ${skin.price}", color = Color(0xFFFFD700), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text("${skin.price}", color = Color(0xFFFFD700), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -535,10 +546,41 @@ private fun HatItemCard(
             modifier = Modifier.padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = hat.iconEmoji.ifEmpty { "🚫" },
-                fontSize = 28.sp
-            )
+            // Modern vector icon representation for each hat (NO EMOJIS)
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF222B40)),
+                contentAlignment = Alignment.Center
+            ) {
+                val hatIcon = when (hat.type) {
+                    HatType.CROWN -> Icons.Default.EmojiEvents
+                    HatType.SUNGLASSES -> Icons.Default.Visibility
+                    HatType.PARTY_HAT -> Icons.Default.Celebration
+                    HatType.BASEBALL_CAP -> Icons.Default.SportsBaseball
+                    HatType.CAT_EARS -> Icons.Default.Pets
+                    HatType.VIKING_HORNS -> Icons.Default.Shield
+                    HatType.ANGEL_HALO -> Icons.Default.Brightness7
+                    HatType.PIRATE_HAT -> Icons.Default.Explore
+                    HatType.NONE -> Icons.Default.Block
+                }
+                val iconTint = when (hat.type) {
+                    HatType.CROWN -> Color(0xFFFFD700)
+                    HatType.SUNGLASSES -> Color(0xFF00E5FF)
+                    HatType.PARTY_HAT -> Color(0xFFFF4081)
+                    HatType.CAT_EARS -> Color(0xFFFF80AB)
+                    HatType.ANGEL_HALO -> Color(0xFFFFEB3B)
+                    HatType.NONE -> Color.Gray
+                    else -> Color.White
+                }
+                Icon(
+                    imageVector = hatIcon,
+                    contentDescription = hat.name,
+                    tint = iconTint,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 
@@ -556,7 +598,78 @@ private fun HatItemCard(
             } else if (isUnlocked) {
                 Text("Tersedia", color = Color(0xFF00E5FF), fontSize = 11.sp)
             } else {
-                Text("🪙 ${hat.price}", color = Color(0xFFFFD700), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text("${hat.price}", color = Color(0xFFFFD700), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FaceItemCard(
+    face: Face,
+    isUnlocked: Boolean,
+    isEquipped: Boolean,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) Color(0xFF00E5FF) else if (isEquipped) Color(0xFF00E676) else Color(0x22FFFFFF),
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) Color(0xFF1E283D) else Color(0xFF141A29)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Modern Canvas face expression preview (NO EMOJIS)
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF222B40)),
+                contentAlignment = Alignment.Center
+            ) {
+                val faceIcon = when (face.type) {
+                    FaceType.HAPPY_SMILE -> Icons.Default.SentimentVerySatisfied
+                    FaceType.OPEN_MOUTH -> Icons.Default.Mood
+                    FaceType.SILLY_TONGUE -> Icons.Default.SentimentSatisfiedAlt
+                    FaceType.COOL_GRIN -> Icons.Default.TagFaces
+                }
+                Icon(
+                    imageVector = faceIcon,
+                    contentDescription = face.name,
+                    tint = Color(0xFFFFD700),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(face.name, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(4.dp))
+
+            if (isEquipped) {
+                Text("Dipakai", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            } else if (isUnlocked) {
+                Text("Tersedia", color = Color(0xFF00E5FF), fontSize = 11.sp)
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text("${face.price}", color = Color(0xFFFFD700), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -595,8 +708,8 @@ private fun ShopPreviewCanvas(skin: Skin, hat: Hat, face: Face) {
         val rightEye = center + Offset(headRadius * 0.35f, -headRadius * 0.25f)
 
         drawCircle(color = Color(0xFF121214), radius = eyeRadius + 1.5f, center = leftEye)
-        drawCircle(color = Color(0xFF121214), radius = eyeRadius + 1.5f, center = rightEye)
         drawCircle(color = Color.White, radius = eyeRadius, center = leftEye)
+        drawCircle(color = Color(0xFF121214), radius = eyeRadius + 1.5f, center = rightEye)
         drawCircle(color = Color.White, radius = eyeRadius, center = rightEye)
         drawCircle(color = Color(0xFF121214), radius = pupilRadius, center = leftEye)
         drawCircle(color = Color(0xFF121214), radius = pupilRadius, center = rightEye)
@@ -623,7 +736,7 @@ private fun ShopPreviewCanvas(skin: Skin, hat: Hat, face: Face) {
             )
         }
 
-        // Crown or Hat
+        // Crown or Hat on preview
         if (hat.type == HatType.CROWN) {
             drawCircle(color = Color(0xFFFFD700), radius = 10f, center = center - Offset(0f, headRadius * 0.95f))
         }

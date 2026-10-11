@@ -266,35 +266,35 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         val baseList = when (tab) {
             "HARI_INI" -> listOf(
-                LeaderboardEntry(1, "SultanCacing", 12540, 24, "🇮🇩"),
-                LeaderboardEntry(2, "BudiDragon", 9820, 18, "🇮🇩"),
-                LeaderboardEntry(3, "ViperKing", 8940, 15, "🇸🇬"),
-                LeaderboardEntry(4, "TokyoDrift99", 7630, 12, "🇯🇵"),
-                LeaderboardEntry(5, "GarudaJuara", 6850, 11, "🇮🇩"),
-                LeaderboardEntry(6, "SnakeMaster", 5420, 9, "🇲🇾"),
-                LeaderboardEntry(7, "MegaWorm", 4910, 8, "🇺🇸")
+                LeaderboardEntry(1, "SultanCacing", 12540, 24, "ID"),
+                LeaderboardEntry(2, "BudiDragon", 9820, 18, "ID"),
+                LeaderboardEntry(3, "ViperKing", 8940, 15, "SG"),
+                LeaderboardEntry(4, "TokyoDrift99", 7630, 12, "JP"),
+                LeaderboardEntry(5, "GarudaJuara", 6850, 11, "ID"),
+                LeaderboardEntry(6, "SnakeMaster", 5420, 9, "MY"),
+                LeaderboardEntry(7, "MegaWorm", 4910, 8, "US")
             )
             "MINGGUAN" -> listOf(
-                LeaderboardEntry(1, "RajaCacingID", 38400, 72, "🇮🇩"),
-                LeaderboardEntry(2, "ApexPredator", 31200, 65, "🇯🇵"),
-                LeaderboardEntry(3, "AuraSlayer", 28900, 58, "🇮🇩"),
-                LeaderboardEntry(4, "SpeedDemon", 24300, 47, "🇧🇷"),
-                LeaderboardEntry(5, "NasiGorengPro", 21500, 42, "🇮🇩"),
-                LeaderboardEntry(6, "BlitzStorm", 18900, 39, "🇸🇬")
+                LeaderboardEntry(1, "RajaCacingID", 38400, 72, "ID"),
+                LeaderboardEntry(2, "ApexPredator", 31200, 65, "JP"),
+                LeaderboardEntry(3, "AuraSlayer", 28900, 58, "ID"),
+                LeaderboardEntry(4, "SpeedDemon", 24300, 47, "BR"),
+                LeaderboardEntry(5, "NasiGorengPro", 21500, 42, "ID"),
+                LeaderboardEntry(6, "BlitzStorm", 18900, 39, "SG")
             )
             else -> listOf( // ALL TIME
-                LeaderboardEntry(1, "NanaMaster", 88900, 192, "🇮🇩"),
-                LeaderboardEntry(2, "LegendWorm", 74200, 168, "🇯🇵"),
-                LeaderboardEntry(3, "KingOfSlither", 69400, 145, "🇺🇸"),
-                LeaderboardEntry(4, "GarudaMythic", 58300, 120, "🇮🇩"),
-                LeaderboardEntry(5, "DragonLord", 49600, 108, "🇸🇬"),
-                LeaderboardEntry(6, "PhantomSnake", 43200, 95, "🇲🇾")
+                LeaderboardEntry(1, "NanaMaster", 88900, 192, "ID"),
+                LeaderboardEntry(2, "LegendWorm", 74200, 168, "JP"),
+                LeaderboardEntry(3, "KingOfSlither", 69400, 145, "US"),
+                LeaderboardEntry(4, "GarudaMythic", 58300, 120, "ID"),
+                LeaderboardEntry(5, "DragonLord", 49600, 108, "SG"),
+                LeaderboardEntry(6, "PhantomSnake", 43200, 95, "MY")
             )
         }
 
         val mutable = ArrayList(baseList)
         // Insert player based on score
-        val playerEntry = LeaderboardEntry(0, myName, myScore, myKills, "🇮🇩", isPlayer = true)
+        val playerEntry = LeaderboardEntry(0, myName, myScore, myKills, "ID", isPlayer = true)
         mutable.add(playerEntry)
         mutable.sortByDescending { it.score }
 

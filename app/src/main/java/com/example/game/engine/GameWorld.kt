@@ -16,14 +16,18 @@ class GameWorld(
     var selectedHat: Hat = Catalog.HATS[0],
     var selectedFace: Face = Catalog.FACES[0]
 ) {
-    // World bounds: -1800f to +1800f
-    val arenaRadius: Float = 1750f
-    val arenaSize: Float = 3500f
+    // World bounds: Vast, expansive arena (Radius 5600f, diameter 11200f)
+    val arenaRadius: Float = 5600f
+    val arenaSize: Float = 11200f
 
     // Entities
     var playerWorm: Worm = createPlayer()
     val botWorms = ArrayList<Worm>()
     val foods = ArrayList<Food>()
+
+    // Spatial hash grid for ultra-smooth 60fps food lookups
+    private val cellSize = 320f
+    private val spatialGrid = HashMap<Long, ArrayList<Food>>()
 
     // Observable states for Jetpack Compose UI
     var isGameOver by mutableStateOf(false)
@@ -33,25 +37,49 @@ class GameWorld(
     var sessionMaxScore by mutableStateOf(100)
     var sessionDurationSec: Float = 0f
 
-    // Food limits
-    private val maxFoodCount = 450
+    // Radar scanning angle
+    var radarScanAngle: Float = 0f
+
+    // Food limits (Rich, abundant feast across the vast map)
+    private val maxFoodCount = 1600
     private var boostDropCounter = 0
 
-    // Random bot names (Indonesian & Global mix for authentic multiplayer feel)
+    // Gamer names (Indonesian & Global mix for multiplayer room feel)
     private val botNames = listOf(
         "RajaCacing", "BudiSantoso", "SitiGamer", "ProSlither99", "DragonSlayer",
         "WormMasterID", "NasiGoreng", "ViperKing", "SpeedyWorm", "GhostRider",
         "MegaSnake", "SuperNana", "CacingKuning", "GarudaGamer", "CyberNinja",
         "TokyoDrift", "AuraFire", "EvosLegend", "RexRegum", "BigBoss99",
-        "WormyCute", "ZodiacID", "BlitzStorm", "ApexHunter", "CandyLover"
+        "WormyCute", "ZodiacID", "BlitzStorm", "ApexHunter", "CandyLover",
+        "ShadowHunter", "NovaStar", "TitanWorm", "VortexID", "CrimsonViper",
+        "PhantomPro", "SkyWalker", "KrakenID", "HydraSnake", "AlphaWolf"
     )
 
-    private val countryFlags = listOf(
-        "🇮🇩", "🇮🇩", "🇮🇩", "🇲🇾", "🇸🇬", "🇹🇭", "🇵🇭", "🇯🇵", "🇰🇷", "🇺🇸", "🇬🇧", "🇧🇷"
+    private val countryCodes = listOf(
+        "ID", "ID", "ID", "MY", "SG", "TH", "PH", "JP", "KR", "US", "GB", "BR"
     )
 
     init {
         resetGame()
+    }
+
+    private fun getGridKey(x: Float, y: Float): Long {
+        val gx = floor(x / cellSize).toInt()
+        val gy = floor(y / cellSize).toInt()
+        return (gx.toLong() shl 32) or (gy.toLong() and 0xFFFFFFFFL)
+    }
+
+    private fun rebuildSpatialGrid() {
+        spatialGrid.clear()
+        for (food in foods) {
+            val key = getGridKey(food.position.x, food.position.y)
+            var list = spatialGrid[key]
+            if (list == null) {
+                list = ArrayList(16)
+                spatialGrid[key] = list
+            }
+            list.add(food)
+        }
     }
 
     fun resetGame() {
@@ -61,22 +89,24 @@ class GameWorld(
         sessionKills = 0
         coinsCollected = 0
         sessionMaxScore = 100
+        radarScanAngle = 0f
 
-        // Create player with spawn shield
+        // Create player with safe spawn shield at center
         playerWorm = createPlayer()
 
-        // Create initial bot worms (spawned at least 450 units away from center)
+        // Create 34 active bot worms distributed across the expansive map
         botWorms.clear()
-        val botCount = 18
+        val botCount = 34
         for (i in 0 until botCount) {
             spawnBot()
         }
 
-        // Spawn initial food
+        // Spawn initial food across the vast map
         foods.clear()
         for (i in 0 until maxFoodCount) {
             foods.add(createRandomFood())
         }
+        rebuildSpatialGrid()
     }
 
     private fun createPlayer(): Worm {
@@ -90,21 +120,21 @@ class GameWorld(
             initialSegmentsCount = 28
         )
         worm.score = 100
-        worm.spawnShieldTimer = 4.0f // 4 seconds of safe spawn shield
+        worm.spawnShieldTimer = 4.5f // 4.5s safe spawn shield
         return worm
     }
 
     private fun spawnBot(): Worm {
-        // Guarantee bots spawn away from the center (0,0) where player starts
+        // Guarantee bots spawn away from the center where player starts
         val angle = Random.nextFloat() * 2 * PI.toFloat()
-        val dist = 450f + Random.nextFloat() * (arenaRadius * 0.85f - 450f)
+        val dist = 650f + Random.nextFloat() * (arenaRadius * 0.90f - 650f)
         val pos = Vector2D(cos(angle) * dist, sin(angle) * dist)
 
         val name = botNames.random()
         val skin = Catalog.SKINS.random()
         val hat = if (Random.nextFloat() > 0.35f) Catalog.HATS.random() else Catalog.HATS[0]
         val face = Catalog.FACES.random()
-        val initialSegments = Random.nextInt(22, 70)
+        val initialSegments = Random.nextInt(22, 75)
 
         val bot = Worm(
             name = name,
@@ -131,7 +161,7 @@ class GameWorld(
             Vector2D(center.x + cos(angle) * r, center.y + sin(angle) * r)
         } else {
             val angle = Random.nextFloat() * 2 * PI.toFloat()
-            val r = sqrt(Random.nextFloat()) * (arenaRadius - 40f)
+            val r = sqrt(Random.nextFloat()) * (arenaRadius - 80f)
             Vector2D(cos(angle) * r, sin(angle) * r)
         }
 
@@ -173,6 +203,7 @@ class GameWorld(
         if (isGameOver || isPaused) return
 
         sessionDurationSec += deltaTime
+        radarScanAngle = (radarScanAngle + deltaTime * 2.8f) % (2 * PI.toFloat())
 
         // 1. Update Player
         if (playerWorm.isAlive) {
@@ -182,7 +213,6 @@ class GameWorld(
             // Arena boundary bounce for player
             val distFromCenter = playerWorm.headPosition.length()
             if (distFromCenter > arenaRadius) {
-                // Steer gently back toward center
                 playerWorm.headPosition = playerWorm.headPosition.normalized() * arenaRadius
                 playerWorm.steerTowards(Vector2D(0f, 0f))
             }
@@ -193,19 +223,17 @@ class GameWorld(
                 if (boostDropCounter % 4 == 0) {
                     playerWorm.shrinkForBoost(2)
                     val dropPos = playerWorm.segments.lastOrNull() ?: playerWorm.headPosition
-                    foods.add(
-                        Food(
-                            position = dropPos + Vector2D(Random.nextFloat() * 10f - 5f, Random.nextFloat() * 10f - 5f),
-                            type = FoodType.MASS_DROP,
-                            value = 8,
-                            radius = 8f,
-                            primaryColor = playerWorm.skin.colors.first()
-                        )
+                    val drop = Food(
+                        position = dropPos + Vector2D(Random.nextFloat() * 10f - 5f, Random.nextFloat() * 10f - 5f),
+                        type = FoodType.MASS_DROP,
+                        value = 8,
+                        radius = 8f,
+                        primaryColor = playerWorm.skin.colors.first()
                     )
+                    foods.add(drop)
                 }
             }
 
-            // Update session max score
             if (playerWorm.score > sessionMaxScore) {
                 sessionMaxScore = playerWorm.score
             }
@@ -216,17 +244,18 @@ class GameWorld(
 
         // 3. Magnet effect for player
         if (playerWorm.isAlive && playerWorm.hasPotion(PotionType.MAGNET)) {
-            val magnetRadius = 260f
+            val magnetRadius = 360f
+            val head = playerWorm.headPosition
             for (food in foods) {
-                val d = food.position.distanceTo(playerWorm.headPosition)
+                val d = food.position.distanceTo(head)
                 if (d < magnetRadius && d > 5f) {
-                    val pullDir = (playerWorm.headPosition - food.position).normalized()
-                    food.position = food.position + pullDir * (380f * deltaTime)
+                    val pullDir = (head - food.position).normalized()
+                    food.position = food.position + pullDir * (450f * deltaTime)
                 }
             }
         }
 
-        // 4. Food consumption
+        // 4. Food consumption (spatial lookup for high 60fps performance)
         checkFoodCollisions(playerWorm)
         for (bot in botWorms) {
             if (bot.isAlive) {
@@ -237,9 +266,14 @@ class GameWorld(
         // 5. Worm vs Worm collisions (head-to-body)
         checkWormCollisions()
 
-        // 6. Maintain food quantity
+        // 6. Maintain food quantity in the vast map
+        var addedAny = false
         while (foods.size < maxFoodCount) {
             foods.add(createRandomFood())
+            addedAny = true
+        }
+        if (addedAny || (sessionDurationSec.toInt() % 2 == 0)) {
+            rebuildSpatialGrid()
         }
 
         // 7. Respawn dead bots
@@ -257,29 +291,26 @@ class GameWorld(
             bot.updateMovement(deltaTime)
             bot.updatePotions(deltaTime)
 
-            // Arena boundary check for bots
             val dist = bot.headPosition.length()
-            if (dist > arenaRadius - 60f) {
+            if (dist > arenaRadius - 100f) {
                 bot.steerTowards(Vector2D(0f, 0f))
                 continue
             }
 
             bot.botDecisionTimer -= deltaTime
             if (bot.botDecisionTimer <= 0f) {
-                bot.botDecisionTimer = Random.nextFloat() * 0.8f + 0.4f
+                bot.botDecisionTimer = Random.nextFloat() * 0.7f + 0.35f
 
-                // Avoid other worms' bodies nearby
                 var dangerVector: Vector2D? = null
                 val allWorms = ArrayList<Worm>()
                 if (playerWorm.isAlive) allWorms.add(playerWorm)
                 allWorms.addAll(botWorms)
 
                 val head = bot.headPosition
-                val checkRadius = 90f
+                val checkRadius = 95f
 
                 for (other in allWorms) {
                     if (other.id == bot.id) continue
-                    // Check segments
                     for (i in 0 until other.segments.size step 2) {
                         val seg = other.segments[i]
                         val segDist = head.distanceTo(seg)
@@ -292,14 +323,12 @@ class GameWorld(
                 }
 
                 if (dangerVector != null) {
-                    // Turn away from danger
                     val avoidAngle = atan2(dangerVector.y, dangerVector.x)
                     bot.steerAngle(avoidAngle)
                     bot.isBoosting = bot.botAggressiveness > 0.6f
                 } else {
-                    // Find closest high-value food
                     var closestFood: Food? = null
-                    var closestDist = 280f
+                    var closestDist = 340f
                     val sampleStep = max(1, foods.size / 60)
                     for (i in 0 until foods.size step sampleStep) {
                         val f = foods[i]
@@ -313,7 +342,6 @@ class GameWorld(
                     if (closestFood != null) {
                         bot.steerTowards(closestFood.position)
                     } else {
-                        // Wander around
                         bot.botWanderAngle += (Random.nextFloat() - 0.5f) * 1.2f
                         bot.steerAngle(bot.botWanderAngle)
                     }
@@ -325,33 +353,47 @@ class GameWorld(
 
     private fun checkFoodCollisions(worm: Worm) {
         val head = worm.headPosition
-        val eatRadius = worm.currentRadius + 16f
+        val eatRadius = worm.currentRadius + 18f
         val eatRadiusSq = eatRadius * eatRadius
 
-        val iterator = foods.iterator()
+        // Query spatial grid around head (3x3 cells)
+        val hx = head.x
+        val hy = head.y
+        val curGx = floor(hx / cellSize).toInt()
+        val curGy = floor(hy / cellSize).toInt()
+
         var ateAny = false
 
-        while (iterator.hasNext()) {
-            val food = iterator.next()
-            if (head.distanceSquaredTo(food.position) <= eatRadiusSq) {
-                iterator.remove()
-                ateAny = true
+        for (dx in -1..1) {
+            for (dy in -1..1) {
+                val key = ((curGx + dx).toLong() shl 32) or ((curGy + dy).toLong() and 0xFFFFFFFFL)
+                val cellList = spatialGrid[key] ?: continue
 
-                var pts = food.value
-                if (worm.hasPotion(PotionType.MULTIPLIER_2X)) {
-                    pts *= 2
-                }
-                worm.grow(pts)
+                val iterator = cellList.iterator()
+                while (iterator.hasNext()) {
+                    val food = iterator.next()
+                    if (head.distanceSquaredTo(food.position) <= eatRadiusSq) {
+                        iterator.remove()
+                        foods.remove(food)
+                        ateAny = true
 
-                if (food.type == FoodType.POTION && food.potionType != null) {
-                    worm.addPotion(food.potionType)
-                    if (worm.isPlayer) {
-                        soundManager.playPotion()
+                        var pts = food.value
+                        if (worm.hasPotion(PotionType.MULTIPLIER_2X)) {
+                            pts *= 2
+                        }
+                        worm.grow(pts)
+
+                        if (food.type == FoodType.POTION && food.potionType != null) {
+                            worm.addPotion(food.potionType)
+                            if (worm.isPlayer) {
+                                soundManager.playPotion()
+                            }
+                        }
+
+                        if (worm.isPlayer) {
+                            coinsCollected += max(1, food.value / 10)
+                        }
                     }
-                }
-
-                if (worm.isPlayer) {
-                    coinsCollected += max(1, food.value / 10)
                 }
             }
         }
@@ -368,7 +410,6 @@ class GameWorld(
 
         for (attacker in allWorms) {
             if (!attacker.isAlive) continue
-            // Attacker has shield? Invulnerable to death
             if (attacker.hasShield) continue
 
             val attackerHead = attacker.headPosition
@@ -377,7 +418,6 @@ class GameWorld(
             for (victim in allWorms) {
                 if (!victim.isAlive || attacker.id == victim.id) continue
 
-                // Check collision against victim's segments (skip first 3 neck segments)
                 val segs = victim.segments
                 val victimRadius = victim.currentRadius
                 val hitDistanceThreshold = (attackerRadius + victimRadius * 0.7f)
@@ -386,7 +426,6 @@ class GameWorld(
                 for (i in 3 until segs.size step 2) {
                     val seg = segs[i]
                     if (attackerHead.distanceSquaredTo(seg) <= hitDistSq) {
-                        // Attacker crashed into victim's body!
                         killWorm(attacker, killer = victim)
                         break
                     }
@@ -409,22 +448,21 @@ class GameWorld(
             }
         }
 
-        // Sound effect
         if (deadWorm.isPlayer || killer?.isPlayer == true) {
             soundManager.playCrash()
         }
 
         // Spawn food remains from dead worm's body segments
-        val dropCount = min(38, max(10, deadWorm.segments.size / 2))
+        val dropCount = min(40, max(12, deadWorm.segments.size / 2))
         val step = max(1, deadWorm.segments.size / dropCount)
         for (i in 0 until deadWorm.segments.size step step) {
             val seg = deadWorm.segments[i]
-            foods.add(
-                createRandomFood(
-                    center = seg,
-                    spread = 24f
-                ).copy(value = 35, radius = 17f, primaryColor = deadWorm.skin.colors.first())
+            val f = createRandomFood(center = seg, spread = 24f).copy(
+                value = 35,
+                radius = 17f,
+                primaryColor = deadWorm.skin.colors.first()
             )
+            foods.add(f)
         }
 
         if (deadWorm.isPlayer) {
@@ -451,13 +489,12 @@ class GameWorld(
                     name = w.name,
                     score = w.score,
                     kills = w.kills,
-                    countryFlag = if (w.isPlayer) "🇮🇩" else countryFlags[(w.id.hashCode() and 0x7FFFFFFF) % countryFlags.size],
+                    countryCode = if (w.isPlayer) "ID" else countryCodes[(w.id.hashCode() and 0x7FFFFFFF) % countryCodes.size],
                     isPlayer = w.isPlayer
                 )
             )
         }
 
-        // If player is alive but outside top 10, append player's current rank
         if (!playerIncluded && playerWorm.isAlive) {
             val playerRank = all.indexOfFirst { it.isPlayer } + 1
             if (playerRank > 0) {
@@ -467,7 +504,7 @@ class GameWorld(
                         name = playerWorm.name,
                         score = playerWorm.score,
                         kills = playerWorm.kills,
-                        countryFlag = "🇮🇩",
+                        countryCode = "ID",
                         isPlayer = true
                     )
                 )
@@ -475,5 +512,18 @@ class GameWorld(
         }
 
         return result
+    }
+
+    // Current sector name for radar HUD
+    fun getPlayerSectorName(): String {
+        val pos = playerWorm.headPosition
+        val dist = pos.length()
+        return when {
+            dist < arenaRadius * 0.25f -> "CORE ARENA"
+            pos.x >= 0 && pos.y >= 0 -> "SECTOR ALPHA"
+            pos.x < 0 && pos.y >= 0 -> "SECTOR BRAVO"
+            pos.x < 0 && pos.y < 0 -> "SECTOR CHARLIE"
+            else -> "SECTOR DELTA"
+        }
     }
 }
