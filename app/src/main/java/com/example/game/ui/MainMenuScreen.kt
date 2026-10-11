@@ -1,0 +1,594 @@
+package com.example.game.ui
+
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.example.game.model.*
+import com.example.game.viewmodel.AppScreen
+import com.example.game.viewmodel.GameViewModel
+import kotlin.math.*
+
+@Composable
+fun MainMenuScreen(viewModel: GameViewModel) {
+    val playerName by viewModel.playerName.collectAsState()
+    val coins by viewModel.coins.collectAsState()
+    val highScore by viewModel.highScore.collectAsState()
+    val selectedSkin by viewModel.selectedSkin.collectAsState()
+    val selectedHat by viewModel.selectedHat.collectAsState()
+    val selectedFace by viewModel.selectedFace.collectAsState()
+    val selectedRoom by viewModel.selectedRoom.collectAsState()
+
+    var showNameDialog by remember { mutableStateOf(false) }
+    var showRoomDialog by remember { mutableStateOf(false) }
+
+    // Pulsing button animation
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(850, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "btnPulse"
+    )
+
+    // Animated worm slithering preview timer
+    val wormAnimProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2 * PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "wormPreview"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFF0D1322), Color(0xFF151C33), Color(0xFF090D17))
+                )
+            )
+            .padding(horizontal = 24.dp, vertical = 14.dp)
+    ) {
+        // TOP HEADER BAR: Coins, High Score, Room, Settings
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Player Profile badge with editable name
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xCC1A233A))
+                    .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(20.dp))
+                    .clickable { showNameDialog = true }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedHat.iconEmoji.ifEmpty { "🐛" },
+                    fontSize = 20.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = playerName,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Ubah Nama",
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Text(
+                        text = "Rekor: $highScore",
+                        color = Color(0xFFFFD700),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Room Selector
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xCC1A233A))
+                    .border(1.dp, Color(0x3300E676), RoundedCornerShape(20.dp))
+                    .clickable { showRoomDialog = true }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF00E676))
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = selectedRoom.name,
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${selectedRoom.region} • ${selectedRoom.pingMs}ms",
+                        color = Color(0xFF00E676),
+                        fontSize = 11.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f)
+                )
+            }
+
+            // Right: Coins balance & Settings Icon
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xCC1A233A))
+                        .border(1.dp, Color(0xFFFFD700), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🪙", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "$coins",
+                        color = Color(0xFFFFD700),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                IconButton(
+                    onClick = { viewModel.setScreen(AppScreen.SETTINGS) },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xCC1A233A))
+                        .border(1.dp, Color(0x33FFFFFF), CircleShape)
+                        .testTag("settings_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Pengaturan",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        // CENTER: Game Title, Slithering Worm Preview, and Big Play Button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center)
+                .padding(top = 40.dp, bottom = 48.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            // Left: Title & Quick Features
+            Column(
+                modifier = Modifier.width(300.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = "👑 NANA TAYANTUH",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFFFFD700),
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "Slither & Battle Royale Arena .io",
+                    fontSize = 14.sp,
+                    color = Color(0xFF00E5FF),
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Makan snack lezat, ambil potion ajaib, dan jadilah cacing terpanjang penguasa arena!",
+                    color = Color.White.copy(alpha = 0.75f),
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Play Button
+                Button(
+                    onClick = { viewModel.startGame() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier
+                        .width(260.dp)
+                        .height(60.dp)
+                        .shadow(16.dp, RoundedCornerShape(24.dp))
+                        .testTag("play_game_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.Black,
+                        modifier = Modifier.size(34.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "MAIN SEKARANG",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black
+                    )
+                }
+            }
+
+            // Center / Right: Slithering Worm Preview
+            Box(
+                modifier = Modifier
+                    .size(260.dp, 220.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color(0x33101626))
+                    .border(2.dp, Color(0x333F51B5), RoundedCornerShape(28.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                WormSlitherPreview(
+                    skin = selectedSkin,
+                    hat = selectedHat,
+                    face = selectedFace,
+                    animAngle = wormAnimProgress
+                )
+            }
+        }
+
+        // BOTTOM BAR: Wardrobe (Shop), Leaderboard, Multiplayer Rooms
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(
+                onClick = { viewModel.setScreen(AppScreen.SHOP) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF651FFF)),
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier
+                    .height(48.dp)
+                    .testTag("shop_button")
+            ) {
+                Text("👕", fontSize = 18.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Kostum & Skin", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+
+            Button(
+                onClick = { viewModel.setScreen(AppScreen.LEADERBOARD) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9100)),
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier
+                    .height(48.dp)
+                    .testTag("leaderboard_button")
+            ) {
+                Text("🏆", fontSize = 18.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Leaderboard Global", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Black)
+            }
+        }
+
+        // Dialog: Edit Name
+        if (showNameDialog) {
+            EditNameDialog(
+                currentName = playerName,
+                onSave = {
+                    viewModel.setPlayerName(it)
+                    showNameDialog = false
+                },
+                onDismiss = { showNameDialog = false }
+            )
+        }
+
+        // Dialog: Choose Room
+        if (showRoomDialog) {
+            ChooseRoomDialog(
+                selectedRoom = selectedRoom,
+                onSelect = {
+                    viewModel.selectRoom(it)
+                    showRoomDialog = false
+                },
+                onDismiss = { showRoomDialog = false }
+            )
+        }
+    }
+}
+
+@Composable
+private fun WormSlitherPreview(
+    skin: Skin,
+    hat: Hat,
+    face: Face,
+    animAngle: Float
+) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val radiusX = size.width * 0.32f
+        val radiusY = size.height * 0.28f
+
+        val segCount = 22
+        val segRadius = 16f
+        val colors = skin.colors
+
+        // Draw segments along a figure-8 / elliptical parametric curve
+        for (i in segCount downTo 0) {
+            val offsetAngle = animAngle - (i * 0.16f)
+            val sx = center.x + cos(offsetAngle) * radiusX
+            val sy = center.y + sin(offsetAngle * 2f) * (radiusY * 0.85f)
+            val pos = Offset(sx, sy)
+
+            val color = when (skin.pattern) {
+                PatternType.STRIPES -> colors[(i / 3) % colors.size]
+                PatternType.RAINBOW -> colors[(i / 2) % colors.size]
+                PatternType.NEON_GLOW -> colors[i % colors.size]
+                PatternType.POLKA_DOTS -> if (i % 3 == 0) colors.last() else colors.first()
+                else -> colors.first()
+            }
+
+            drawCircle(color = Color(0xFF151515), radius = segRadius + 2f, center = pos)
+            drawCircle(color = color, radius = segRadius, center = pos)
+            drawCircle(color = Color.White.copy(alpha = 0.4f), radius = segRadius * 0.5f, center = pos - Offset(segRadius * 0.25f, segRadius * 0.25f))
+        }
+
+        // Head
+        val hx = center.x + cos(animAngle) * radiusX
+        val hy = center.y + sin(animAngle * 2f) * (radiusY * 0.85f)
+        val headPos = Offset(hx, hy)
+        val headRadius = segRadius * 1.3f
+
+        drawCircle(color = Color(0xFF151515), radius = headRadius + 2.5f, center = headPos)
+        drawCircle(color = colors.first(), radius = headRadius, center = headPos)
+        drawCircle(color = Color.White.copy(alpha = 0.4f), radius = headRadius * 0.5f, center = headPos - Offset(headRadius * 0.25f, headRadius * 0.25f))
+
+        // Eyes
+        val eyeRadius = headRadius * 0.42f
+        val pupilRadius = eyeRadius * 0.52f
+        val leftEye = headPos + Offset(-headRadius * 0.35f, -headRadius * 0.25f)
+        val rightEye = headPos + Offset(headRadius * 0.35f, -headRadius * 0.25f)
+
+        drawCircle(color = Color(0xFF151515), radius = eyeRadius + 1.5f, center = leftEye)
+        drawCircle(color = Color(0xFF151515), radius = eyeRadius + 1.5f, center = rightEye)
+        drawCircle(color = Color.White, radius = eyeRadius, center = leftEye)
+        drawCircle(color = Color.White, radius = eyeRadius, center = rightEye)
+        drawCircle(color = Color(0xFF151515), radius = pupilRadius, center = leftEye)
+        drawCircle(color = Color(0xFF151515), radius = pupilRadius, center = rightEye)
+        drawCircle(color = Color.White, radius = pupilRadius * 0.45f, center = leftEye - Offset(2f, 2f))
+        drawCircle(color = Color.White, radius = pupilRadius * 0.45f, center = rightEye - Offset(2f, 2f))
+
+        // Blushing cheeks
+        drawCircle(color = Color(0x66FF4081), radius = 4.5f, center = headPos + Offset(-headRadius * 0.48f, headRadius * 0.2f))
+        drawCircle(color = Color(0x66FF4081), radius = 4.5f, center = headPos + Offset(headRadius * 0.48f, headRadius * 0.2f))
+
+        // Mouth
+        if (face.type == FaceType.OPEN_MOUTH) {
+            drawCircle(color = Color(0xFF880E4F), radius = headRadius * 0.32f, center = headPos + Offset(0f, headRadius * 0.38f))
+            drawCircle(color = Color(0xFFFF4081), radius = headRadius * 0.18f, center = headPos + Offset(0f, headRadius * 0.48f))
+        } else {
+            drawArc(
+                color = Color(0xFF1E1E24),
+                startAngle = 20f,
+                sweepAngle = 140f,
+                useCenter = false,
+                topLeft = headPos - Offset(headRadius * 0.35f, -headRadius * 0.05f),
+                size = androidx.compose.ui.geometry.Size(headRadius * 0.7f, headRadius * 0.5f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f)
+            )
+        }
+
+        // Crown
+        if (hat.type == HatType.CROWN) {
+            drawCircle(color = Color(0xFFFFD700), radius = 9f, center = headPos - Offset(0f, headRadius * 0.95f))
+        }
+    }
+}
+
+@Composable
+private fun EditNameDialog(
+    currentName: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var text by remember { mutableStateOf(currentName) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2638)),
+            modifier = Modifier.width(360.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Ganti Nama Cacing",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { if (it.length <= 15) text = it },
+                    label = { Text("Nama Pemain") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF00E5FF)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Batal", color = Color.White)
+                    }
+
+                    Button(
+                        onClick = { onSave(text.ifBlank { "Nana" }) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Simpan", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChooseRoomDialog(
+    selectedRoom: GameRoom,
+    onSelect: (GameRoom) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF161F33)),
+            modifier = Modifier
+                .width(420.dp)
+                .border(2.dp, Color(0xFF3F51B5), RoundedCornerShape(24.dp))
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "🌐 PILIH ROOM MULTIPLAYER",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 18.sp,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Catalog.ROOMS.forEach { room ->
+                    val isCurrent = room.id == selectedRoom.id
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (isCurrent) Color(0x3300E676) else Color(0xFF202A42))
+                            .border(
+                                1.5.dp,
+                                if (isCurrent) Color(0xFF00E676) else Color.Transparent,
+                                RoundedCornerShape(14.dp)
+                            )
+                            .clickable { onSelect(room) }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = room.name,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF651FFF), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = room.badge,
+                                        color = Color.White,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "${room.region} • ${room.playersCount}/${room.maxPlayers} Pemain",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        Text(
+                            text = "${room.pingMs} ms",
+                            color = Color(0xFF00E676),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Tutup", color = Color.White)
+                }
+            }
+        }
+    }
+}

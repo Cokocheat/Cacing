@@ -1,0 +1,631 @@
+package com.example.game.ui
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.game.model.*
+import com.example.game.viewmodel.AppScreen
+import com.example.game.viewmodel.GameViewModel
+import kotlin.math.sin
+
+@Composable
+fun ShopScreen(viewModel: GameViewModel) {
+    BackHandler {
+        viewModel.setScreen(AppScreen.MAIN_MENU)
+    }
+
+    val coins by viewModel.coins.collectAsState()
+    val selectedSkin by viewModel.selectedSkin.collectAsState()
+    val selectedHat by viewModel.selectedHat.collectAsState()
+    val selectedFace by viewModel.selectedFace.collectAsState()
+
+    var activeTab by remember { mutableStateOf("SKINS") } // "SKINS", "HATS", "FACES"
+    var previewSkin by remember { mutableStateOf(selectedSkin) }
+    var previewHat by remember { mutableStateOf(selectedHat) }
+    var previewFace by remember { mutableStateOf(selectedFace) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F1523))
+            .padding(16.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Top Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { viewModel.setScreen(AppScreen.MAIN_MENU) },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color(0x33FFFFFF))
+                            .testTag("shop_back_button")
+                    ) {
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.White)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "LEMARI SKIN & AKSESORIS",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                }
+
+                // Coins Indicator + Bonus Coins Button
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = { viewModel.addBonusCoins(300) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF651FFF)),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.height(36.dp).testTag("claim_bonus_coins")
+                    ) {
+                        Icon(imageVector = Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("+300 Koin", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFF1E283D))
+                            .border(1.5.dp, Color(0xFFFFD700), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🪙", fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "$coins Koin",
+                            color = Color(0xFFFFD700),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Main Content: Left Preview Card & Right Items Grid
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // LEFT: Live Preview Card
+                Card(
+                    modifier = Modifier
+                        .width(280.dp)
+                        .fillMaxHeight(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161E2E))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "PREVIEW CACING ANDA",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00E5FF)
+                        )
+
+                        // Circular Canvas Preview
+                        Box(
+                            modifier = Modifier
+                                .size(170.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF0B101D))
+                                .border(2.dp, Color(0x333F51B5), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ShopPreviewCanvas(skin = previewSkin, hat = previewHat, face = previewFace)
+                        }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = previewSkin.name,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            if (previewHat.type != HatType.NONE) {
+                                Text(
+                                    text = "+ ${previewHat.name}",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFFFFD700)
+                                )
+                            }
+                            Text(
+                                text = "Wajah: ${previewFace.name}",
+                                fontSize = 11.sp,
+                                color = Color(0xFF00E676)
+                            )
+                        }
+
+                        // Apply or Buy button based on active tab
+                        when (activeTab) {
+                            "SKINS" -> {
+                                val isUnlocked = viewModel.isSkinUnlocked(previewSkin.id)
+                                val isEquipped = selectedSkin.id == previewSkin.id
+
+                                if (isEquipped) {
+                                    Button(
+                                        onClick = {},
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF424242)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color(0xFF00E676))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Sedang Dipakai", color = Color.White)
+                                    }
+                                } else if (isUnlocked) {
+                                    Button(
+                                        onClick = { viewModel.selectSkin(previewSkin) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                                        modifier = Modifier.fillMaxWidth().testTag("equip_skin_button")
+                                    ) {
+                                        Text("Pakai Skin Ini", color = Color.Black, fontWeight = FontWeight.Bold)
+                                    }
+                                } else {
+                                    Button(
+                                        onClick = { viewModel.buySkin(previewSkin) },
+                                        enabled = coins >= previewSkin.price,
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
+                                        modifier = Modifier.fillMaxWidth().testTag("buy_skin_button")
+                                    ) {
+                                        Text("Beli (🪙 ${previewSkin.price})", color = Color.Black, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            "HATS" -> {
+                                val isUnlocked = viewModel.isHatUnlocked(previewHat.id)
+                                val isEquipped = selectedHat.id == previewHat.id
+
+                                if (isEquipped) {
+                                    Button(
+                                        onClick = {},
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF424242)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color(0xFF00E676))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Sedang Dipakai", color = Color.White)
+                                    }
+                                } else if (isUnlocked) {
+                                    Button(
+                                        onClick = { viewModel.selectHat(previewHat) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                                        modifier = Modifier.fillMaxWidth().testTag("equip_hat_button")
+                                    ) {
+                                        Text("Pakai Topi Ini", color = Color.Black, fontWeight = FontWeight.Bold)
+                                    }
+                                } else {
+                                    Button(
+                                        onClick = { viewModel.buyHat(previewHat) },
+                                        enabled = coins >= previewHat.price,
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
+                                        modifier = Modifier.fillMaxWidth().testTag("buy_hat_button")
+                                    ) {
+                                        Text("Beli (🪙 ${previewHat.price})", color = Color.Black, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            else -> {
+                                val isUnlocked = viewModel.isFaceUnlocked(previewFace.id)
+                                val isEquipped = selectedFace.id == previewFace.id
+
+                                if (isEquipped) {
+                                    Button(
+                                        onClick = {},
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF424242)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color(0xFF00E676))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Sedang Dipakai", color = Color.White)
+                                    }
+                                } else if (isUnlocked) {
+                                    Button(
+                                        onClick = { viewModel.selectFace(previewFace) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                                        modifier = Modifier.fillMaxWidth().testTag("equip_face_button")
+                                    ) {
+                                        Text("Pakai Wajah Ini", color = Color.Black, fontWeight = FontWeight.Bold)
+                                    }
+                                } else {
+                                    Button(
+                                        onClick = { viewModel.buyFace(previewFace) },
+                                        enabled = coins >= previewFace.price,
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
+                                        modifier = Modifier.fillMaxWidth().testTag("buy_face_button")
+                                    ) {
+                                        Text("Beli (🪙 ${previewFace.price})", color = Color.Black, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // RIGHT: Tabs + Grid of Items
+                Column(modifier = Modifier.weight(1f)) {
+                    // Tab Selector: Skins, Hats, Faces
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFF161E2E))
+                            .padding(4.dp)
+                    ) {
+                        TabButton(
+                            title = "🎨 Skin Tubuh (${Catalog.SKINS.size})",
+                            isSelected = activeTab == "SKINS",
+                            onClick = { activeTab = "SKINS" },
+                            modifier = Modifier.weight(1f)
+                        )
+                        TabButton(
+                            title = "👑 Topi & Aksesoris (${Catalog.HATS.size})",
+                            isSelected = activeTab == "HATS",
+                            onClick = { activeTab = "HATS" },
+                            modifier = Modifier.weight(1f)
+                        )
+                        TabButton(
+                            title = "😃 Wajah & Ekspresi (${Catalog.FACES.size})",
+                            isSelected = activeTab == "FACES",
+                            onClick = { activeTab = "FACES" },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    when (activeTab) {
+                        "SKINS" -> {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(Catalog.SKINS) { skin ->
+                                    val isUnlocked = viewModel.isSkinUnlocked(skin.id)
+                                    val isEquipped = selectedSkin.id == skin.id
+                                    val isCurrentPreview = previewSkin.id == skin.id
+
+                                    SkinItemCard(
+                                        skin = skin,
+                                        isUnlocked = isUnlocked,
+                                        isEquipped = isEquipped,
+                                        isSelected = isCurrentPreview,
+                                        onClick = {
+                                            previewSkin = skin
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        "HATS" -> {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(Catalog.HATS) { hat ->
+                                    val isUnlocked = viewModel.isHatUnlocked(hat.id)
+                                    val isEquipped = selectedHat.id == hat.id
+                                    val isCurrentPreview = previewHat.id == hat.id
+
+                                    HatItemCard(
+                                        hat = hat,
+                                        isUnlocked = isUnlocked,
+                                        isEquipped = isEquipped,
+                                        isSelected = isCurrentPreview,
+                                        onClick = {
+                                            previewHat = hat
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        else -> {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(Catalog.FACES) { face ->
+                                    val isUnlocked = viewModel.isFaceUnlocked(face.id)
+                                    val isEquipped = selectedFace.id == face.id
+                                    val isCurrentPreview = previewFace.id == face.id
+
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { previewFace = face }
+                                            .border(
+                                                width = if (isCurrentPreview) 2.dp else 1.dp,
+                                                color = if (isCurrentPreview) Color(0xFF00E5FF) else if (isEquipped) Color(0xFF00E676) else Color(0x22FFFFFF),
+                                                shape = RoundedCornerShape(16.dp)
+                                            ),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isCurrentPreview) Color(0xFF1E283D) else Color(0xFF141A29)
+                                        )
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(10.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(face.iconEmoji, fontSize = 28.sp)
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(face.name, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            if (isEquipped) {
+                                                Text("Dipakai", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            } else if (isUnlocked) {
+                                                Text("Tersedia", color = Color(0xFF00E5FF), fontSize = 11.sp)
+                                            } else {
+                                                Text("🪙 ${face.price}", color = Color(0xFFFFD700), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TabButton(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isSelected) Color(0xFF651FFF) else Color.Transparent)
+            .clickable { onClick() }
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = title,
+            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp
+        )
+    }
+}
+
+@Composable
+private fun SkinItemCard(
+    skin: Skin,
+    isUnlocked: Boolean,
+    isEquipped: Boolean,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) Color(0xFF00E5FF) else if (isEquipped) Color(0xFF00E676) else Color(0x22FFFFFF),
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) Color(0xFF1E283D) else Color(0xFF141A29)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Color sample swatches
+            Row(
+                modifier = Modifier
+                    .height(28.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp)),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                skin.colors.forEach { c ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(c)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = skin.name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = Color.White
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            if (isEquipped) {
+                Text("Dipakai", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            } else if (isUnlocked) {
+                Text("Tersedia", color = Color(0xFF00E5FF), fontSize = 11.sp)
+            } else {
+                Text("🪙 ${skin.price}", color = Color(0xFFFFD700), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HatItemCard(
+    hat: Hat,
+    isUnlocked: Boolean,
+    isEquipped: Boolean,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) Color(0xFF00E5FF) else if (isEquipped) Color(0xFF00E676) else Color(0x22FFFFFF),
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) Color(0xFF1E283D) else Color(0xFF141A29)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = hat.iconEmoji.ifEmpty { "🚫" },
+                fontSize = 28.sp
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = hat.name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = Color.White
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            if (isEquipped) {
+                Text("Dipakai", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            } else if (isUnlocked) {
+                Text("Tersedia", color = Color(0xFF00E5FF), fontSize = 11.sp)
+            } else {
+                Text("🪙 ${hat.price}", color = Color(0xFFFFD700), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShopPreviewCanvas(skin: Skin, hat: Hat, face: Face) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val colors = skin.colors
+
+        // S-curve preview segments
+        val segCount = 10
+        val segRadius = 18f
+        for (i in segCount downTo 1) {
+            val progress = i.toFloat() / segCount
+            val x = center.x - (progress * 55f)
+            val y = center.y + sin(progress * 3.14f * 1.5f) * 35f
+            val color = colors[i % colors.size]
+
+            drawCircle(color = Color(0xFF111111), radius = segRadius + 2f, center = Offset(x, y))
+            drawCircle(color = color, radius = segRadius, center = Offset(x, y))
+            drawCircle(color = Color.White.copy(alpha = 0.4f), radius = segRadius * 0.5f, center = Offset(x - 4f, y - 4f))
+        }
+
+        // Head
+        val headRadius = segRadius * 1.35f
+        drawCircle(color = Color(0xFF111111), radius = headRadius + 2.5f, center = center)
+        drawCircle(color = colors.first(), radius = headRadius, center = center)
+        drawCircle(color = Color.White.copy(alpha = 0.4f), radius = headRadius * 0.5f, center = center - Offset(headRadius * 0.25f, headRadius * 0.25f))
+
+        // Big cartoon eyes
+        val eyeRadius = headRadius * 0.42f
+        val pupilRadius = eyeRadius * 0.52f
+        val leftEye = center + Offset(-headRadius * 0.35f, -headRadius * 0.25f)
+        val rightEye = center + Offset(headRadius * 0.35f, -headRadius * 0.25f)
+
+        drawCircle(color = Color(0xFF121214), radius = eyeRadius + 1.5f, center = leftEye)
+        drawCircle(color = Color(0xFF121214), radius = eyeRadius + 1.5f, center = rightEye)
+        drawCircle(color = Color.White, radius = eyeRadius, center = leftEye)
+        drawCircle(color = Color.White, radius = eyeRadius, center = rightEye)
+        drawCircle(color = Color(0xFF121214), radius = pupilRadius, center = leftEye)
+        drawCircle(color = Color(0xFF121214), radius = pupilRadius, center = rightEye)
+        drawCircle(color = Color.White, radius = pupilRadius * 0.4f, center = leftEye - Offset(2f, 2f))
+        drawCircle(color = Color.White, radius = pupilRadius * 0.4f, center = rightEye - Offset(2f, 2f))
+
+        // Cheeks
+        drawCircle(color = Color(0x66FF4081), radius = 5f, center = center + Offset(-headRadius * 0.5f, headRadius * 0.2f))
+        drawCircle(color = Color(0x66FF4081), radius = 5f, center = center + Offset(headRadius * 0.5f, headRadius * 0.2f))
+
+        // Mouth
+        if (face.type == FaceType.OPEN_MOUTH) {
+            drawCircle(color = Color(0xFF880E4F), radius = headRadius * 0.3f, center = center + Offset(0f, headRadius * 0.4f))
+            drawCircle(color = Color(0xFFFF4081), radius = headRadius * 0.18f, center = center + Offset(0f, headRadius * 0.5f))
+        } else {
+            drawArc(
+                color = Color(0xFF1E1E24),
+                startAngle = 20f,
+                sweepAngle = 140f,
+                useCenter = false,
+                topLeft = center - Offset(headRadius * 0.35f, -headRadius * 0.1f),
+                size = androidx.compose.ui.geometry.Size(headRadius * 0.7f, headRadius * 0.5f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f)
+            )
+        }
+
+        // Crown or Hat
+        if (hat.type == HatType.CROWN) {
+            drawCircle(color = Color(0xFFFFD700), radius = 10f, center = center - Offset(0f, headRadius * 0.95f))
+        }
+    }
+}
